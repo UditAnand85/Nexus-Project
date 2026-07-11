@@ -1,18 +1,65 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../config/db.js';
-import { jobs } from '../db/schema/index.js';
+import { jobs, students, shortlistedStudents } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
 
 export const getAllJobs = async () => {
-  return await db.select().from(jobs).orderBy(desc(jobs.created_at));
+  return await db
+    .select({
+      job_id: jobs.job_id,
+      job_title: jobs.job_title,
+      job_description: jobs.job_description,
+      expected_ctc: jobs.expected_ctc,
+      job_location: jobs.job_location,
+      employment_type: jobs.employment_type,
+      openings: jobs.openings,
+      application_start_date: jobs.application_start_date,
+      application_end_date: jobs.application_end_date,
+      job_status: jobs.job_status,
+      resume_cutoff_score: jobs.resume_cutoff_score,
+      evaluation_prompt: jobs.evaluation_prompt,
+      email_template: jobs.email_template,
+      created_by: jobs.created_by,
+      created_at: jobs.created_at,
+      updated_at: jobs.updated_at,
+      applicants_count: sql`count(${students.student_id})::int`,
+    })
+    .from(jobs)
+    .leftJoin(students, eq(jobs.job_id, students.job_id))
+    .groupBy(jobs.job_id)
+    .orderBy(desc(jobs.created_at));
 };
 
 // ─── Get By ID ────────────────────────────────────────────────────────────────
 
 export const getJobById = async (jobId) => {
-  const result = await db.select().from(jobs).where(eq(jobs.job_id, jobId)).limit(1);
+  const result = await db
+    .select({
+      job_id: jobs.job_id,
+      job_title: jobs.job_title,
+      job_description: jobs.job_description,
+      expected_ctc: jobs.expected_ctc,
+      job_location: jobs.job_location,
+      employment_type: jobs.employment_type,
+      openings: jobs.openings,
+      application_start_date: jobs.application_start_date,
+      application_end_date: jobs.application_end_date,
+      job_status: jobs.job_status,
+      resume_cutoff_score: jobs.resume_cutoff_score,
+      evaluation_prompt: jobs.evaluation_prompt,
+      email_template: jobs.email_template,
+      created_by: jobs.created_by,
+      created_at: jobs.created_at,
+      updated_at: jobs.updated_at,
+      applicants_count: sql`count(${students.student_id})::int`,
+    })
+    .from(jobs)
+    .leftJoin(students, eq(jobs.job_id, students.job_id))
+    .where(eq(jobs.job_id, jobId))
+    .groupBy(jobs.job_id)
+    .limit(1);
 
   if (result.length === 0) {
     throw new AppError(`Job with ID ${jobId} not found.`, 404);
@@ -109,4 +156,44 @@ export const stopShortlisting = async (jobId) => {
     .returning();
 
   return updatedJob;
+};
+
+// ─── Get Ranked Candidates ───────────────────────────────────────────────────
+
+export const getRankedStudents = async (jobId) => {
+  const result = await db
+    .select({
+      student_id: students.student_id,
+      full_name: students.full_name,
+      email: students.email,
+      phone: students.phone,
+      job_id: students.job_id,
+      resume_url: students.resume_url,
+      resume_score: students.resume_score,
+      application_status: students.application_status,
+      created_at: students.created_at,
+      shortlisted_id: shortlistedStudents.shortlisted_id,
+      video_url: shortlistedStudents.video_url,
+      video_score: shortlistedStudents.video_score,
+      aptitude_score: shortlistedStudents.aptitude_score,
+      final_score: shortlistedStudents.final_score,
+      recommendation: shortlistedStudents.recommendation,
+      current_stage: shortlistedStudents.current_stage,
+    })
+    .from(students)
+    .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
+    .where(eq(students.job_id, jobId));
+
+  // Sort by final_score descending (place nulls at the end)
+  const sorted = result.sort((a, b) => {
+    const scoreA = a.final_score ? parseFloat(a.final_score) : 0;
+    const scoreB = b.final_score ? parseFloat(b.final_score) : 0;
+    return scoreB - scoreA;
+  });
+
+  // Assign ranks
+  return sorted.map((item, index) => ({
+    ...item,
+    rank: index + 1,
+  }));
 };

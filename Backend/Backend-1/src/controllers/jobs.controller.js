@@ -90,3 +90,16 @@ export const stopShortlisting = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * GET /api/v1/jobs/:id/candidates
+ * Retrieve all candidates for a job, ranked by score.
+ */
+export const getRankedStudents = async (req, res, next) => {
+  try {
+    const studentsList = await jobsService.getRankedStudents(parseInt(req.params.id, 10));
+    res.status(200).json({ success: true, count: studentsList.length, data: studentsList });
+  } catch (error) {
+    next(error);
+  }
+};

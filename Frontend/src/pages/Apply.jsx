@@ -3,7 +3,11 @@ import { submitApplication } from "../api/apiClient";
 import { validateResumeFile } from "../utils/format";
 
 export default function Apply({ job, account, onBack, onSubmitted }) {
-  const [form, setForm] = useState({ skills: "", achievements: "" });
+  const [form, setForm] = useState({
+    full_name: account?.full_name || "",
+    email: account?.email || "",
+    phone: account?.phone || "",
+  });
   const [file, setFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +29,9 @@ export default function Apply({ job, account, onBack, onSubmitted }) {
 
   const validate = () => {
     const next = {};
-    if (!form.skills.trim()) next.skills = "List at least one skill.";
+    if (!form.full_name.trim()) next.full_name = "Enter your full name.";
+    if (!form.email.trim()) next.email = "Enter your email.";
+    if (!form.phone.trim()) next.phone = "Enter your phone number.";
     if (!file) next.resume = "Upload your resume as a PDF.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -53,18 +59,21 @@ export default function Apply({ job, account, onBack, onSubmitted }) {
       <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">Step 1 of 3</span>
       <h1 className="text-[30px] font-medium">Submit your application</h1>
       <p className="text-inksoft text-sm mt-2">
-        Applying as <span className="font-medium text-ink">{account?.full_name}</span> ({account?.email})
+        Applying to <span className="font-medium text-ink">{job?.job_title}</span>
       </p>
 
       <div className="bg-panel border border-line rounded-xl shadow-sm p-9 max-w-[560px] mt-6">
-        <Field label="skills" error={errors.skills}>
-          <input className="field-input" placeholder="Figma, Design Systems, User Research" value={form.skills} onChange={update("skills")} />
+        <Field label="Name" error={errors.full_name}>
+          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} />
         </Field>
-        <Field label="achievements">
-          <input className="field-input" placeholder="Optional — awards, publications, notable projects" value={form.achievements} onChange={update("achievements")} />
+        <Field label="Email" error={errors.email}>
+          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} />
+        </Field>
+        <Field label="Phone number" error={errors.phone}>
+          <input className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} />
         </Field>
 
-        <Field label="resume_url (upload PDF)" error={errors.resume}>
+        <Field label="Resume (upload PDF)" error={errors.resume}>
           <label
             className={`block border-[1.5px] border-dashed rounded-lg p-6 text-center text-[13px] cursor-pointer ${
               file ? "border-solid border-go text-go bg-gosoft" : "border-line text-inksoft"

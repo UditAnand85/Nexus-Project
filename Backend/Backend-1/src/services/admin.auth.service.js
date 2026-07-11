@@ -29,6 +29,7 @@ export const login = async ({ email, password }) => {
       department: admin.department,
       phone: admin.phone,
       account_status: admin.account_status,
+      must_change_password: admin.must_change_password,
     })
     .from(admin)
     .leftJoin(roles, eq(admin.role_key, roles.role_key))
@@ -77,6 +78,7 @@ export const login = async ({ email, password }) => {
       role_key: adminData.role_key,
       role_name: adminData.role_name,
       department: adminData.department,
+      must_change_password: adminData.must_change_password,
     },
   };
 };

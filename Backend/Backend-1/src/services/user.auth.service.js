@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../config/db.js';
-import { users } from '../db/schema/index.js';
+import { users, students, jobs, shortlistedStudents } from '../db/schema/index.js';
 import { env } from '../config/env.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -111,4 +111,33 @@ export const getUserById = async (userId) => {
   }
 
   return result[0];
+};
+
+// ─── Get Candidate Applications ───────────────────────────────────────────────
+
+export const getMyApplications = async (email) => {
+  return await db
+    .select({
+      student_id: students.student_id,
+      email: students.email,
+      full_name: students.full_name,
+      phone: students.phone,
+      resume_url: students.resume_url,
+      resume_score: students.resume_score,
+      application_status: students.application_status,
+      created_at: students.created_at,
+      job_id: students.job_id,
+      job_title: jobs.job_title,
+      video_url: shortlistedStudents.video_url,
+      video_score: shortlistedStudents.video_score,
+      aptitude_score: shortlistedStudents.aptitude_score,
+      final_score: shortlistedStudents.final_score,
+      current_stage: shortlistedStudents.current_stage,
+      recommendation: shortlistedStudents.recommendation,
+    })
+    .from(students)
+    .innerJoin(jobs, eq(students.job_id, jobs.job_id))
+    .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
+    .where(eq(students.email, email))
+    .orderBy(desc(students.created_at));
 };

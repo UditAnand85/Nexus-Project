@@ -1,10 +1,12 @@
 import * as userAuthService from '../services/user.auth.service.js';
 
 // ─── Cookie Settings ──────────────────────────────────────────────────────────
+// secure: true only in production (HTTPS). On localhost (http) browsers silently
+// drop cookies with secure:true, so we set it to false in development.
 const COOKIE_OPTIONS = {
-  httpOnly: true,    // Not accessible via JS (XSS protection)
-  secure: true,      // HTTPS only
-  sameSite: 'strict',
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
   maxAge: 24 * 60 * 60 * 1000, // 24 hours in ms
 };
 
@@ -75,8 +77,8 @@ export const logout = (_req, res, next) => {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     });
     res.status(200).json({ success: true, message: 'Logged out successfully.' });
   } catch (error) {
@@ -92,6 +94,19 @@ export const getMe = async (req, res, next) => {
   try {
     const user = await userAuthService.getUserById(req.user.id);
     res.status(200).json({ success: true, data: { user } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/me/applications
+ * Retrieve currently logged-in candidate's job applications.
+ */
+export const getMyApplications = async (req, res, next) => {
+  try {
+    const applications = await userAuthService.getMyApplications(req.user.email);
+    res.status(200).json({ success: true, count: applications.length, data: applications });
   } catch (error) {
     next(error);
   }

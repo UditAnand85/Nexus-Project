@@ -14,11 +14,14 @@ const router = Router();
  * Write routes: Super Admin (R001), HR Manager (R002), Hiring Manager (R003)
  */
 
-// GET /api/v1/jobs — View all job postings
-router.get('/', authenticateAdmin, allowAnyAdmin, jobsController.getAllJobs);
+// GET /api/v1/jobs — View all job postings (PUBLIC)
+router.get('/', jobsController.getAllJobs);
 
-// GET /api/v1/jobs/:id — View a specific job
-router.get('/:id', authenticateAdmin, allowAnyAdmin, jobsController.getJobById);
+// GET /api/v1/jobs/:id — View a specific job (PUBLIC)
+router.get('/:id', jobsController.getJobById);
+
+// GET /api/v1/jobs/:id/candidates — View ranked candidates for a job
+router.get('/:id/candidates', authenticateAdmin, allowAnyAdmin, jobsController.getRankedStudents);
 
 // POST /api/v1/jobs — Create a new job posting
 router.post('/', authenticateAdmin, allowWriteAccess, jobsController.createJob);

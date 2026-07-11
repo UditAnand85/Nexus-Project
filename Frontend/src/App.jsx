@@ -10,9 +10,10 @@ import StudentRegister from "./pages/StudentRegister";
 import MyApplications from "./pages/MyApplications";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import ChangePassword from "./pages/ChangePassword";
 import JobCreate from "./pages/JobCreate";
-import { getJob, getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout } from "./api/apiClient";
-import { checkBackendHealth, getAuthToken } from "./api/config";
+import { getJob, getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout, getAdminMe, getStudentMe, getStoredAdmin } from "./api/apiClient";
+import { checkBackendHealth } from "./api/config";
 import { useApi } from "./utils/useApi";
 import { BackendOfflineBanner } from "./components/Status";
 
@@ -21,15 +22,36 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [submittedStudent, setSubmittedStudent] = useState(null);
   const [drawerStudentId, setDrawerStudentId] = useState(null);
-  const [isAdminAuthed, setIsAdminAuthed] = useState(!!getAuthToken("admin"));
+  const [adminAccount, setAdminAccount] = useState(() => getStoredAdmin());
   const [studentAccount, setStudentAccount] = useState(() => getStoredStudentAccount());
   const [backendOk, setBackendOk] = useState(true);
   const [pendingApplyJobId, setPendingApplyJobId] = useState(null);
 
+  const isAdminAuthed = !!adminAccount;
   const isStudentAuthed = !!studentAccount;
 
   useEffect(() => {
     checkBackendHealth().then((result) => setBackendOk(result.ok));
+
+    // Restore candidate session on load
+    if (getStoredStudentAccount()) {
+      getStudentMe()
+        .then((profile) => setStudentAccount(profile))
+        .catch(() => {
+          studentLogout();
+          setStudentAccount(null);
+        });
+    }
+
+    // Restore admin session on load
+    if (getStoredAdmin()) {
+      getAdminMe()
+        .then((profile) => setAdminAccount(profile))
+        .catch(() => {
+          adminLogout();
+          setAdminAccount(null);
+        });
+    }
   }, []);
 
   const navigate = (target) => {
@@ -74,7 +96,7 @@ export default function App() {
 
   const handleAdminLogout = () => {
     adminLogout();
-    setIsAdminAuthed(false);
+    setAdminAccount(null);
     navigate("portal");
   };
 
@@ -148,8 +170,26 @@ export default function App() {
 
       {view === "admin-login" && (
         <AdminLogin
-          onLogin={() => {
-            setIsAdminAuthed(true);
+          onLogin={(admin) => {
+            setAdminAccount(admin);
+            // First login — force password change before accessing dashboard
+            if (admin?.must_change_password) {
+              navigate("change-password");
+            } else {
+              navigate("admin-dashboard");
+            }
+          }}
+        />
+      )}
+
+      {view === "change-password" && (
+        <ChangePassword
+          admin={adminAccount}
+          onChanged={() => {
+            // Clear the must_change_password flag locally and go to dashboard
+            const updated = { ...adminAccount, must_change_password: false };
+            setAdminAccount(updated);
+            localStorage.setItem("recruitai_admin_user", JSON.stringify(updated));
             navigate("admin-dashboard");
           }}
         />
@@ -157,6 +197,7 @@ export default function App() {
 
       {view === "admin-dashboard" && (
         <AdminDashboard
+          admin={adminAccount}
           onNewJob={() => navigate("job-create")}
           onOpenCandidate={(id) => setDrawerStudentId(id)}
           onLogout={handleAdminLogout}

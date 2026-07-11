@@ -35,6 +35,7 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
           <li className="mb-1.5">
             Application window: {formatDate(job.application_start_date)} – {formatDate(job.application_end_date)}
           </li>
+          <li className="mb-1.5">Number of applicants: {job.applicants_count || 0}</li>
           <li className="mb-1.5">Evaluation: resume screen → video intro → aptitude test</li>
         </ul>
       </div>

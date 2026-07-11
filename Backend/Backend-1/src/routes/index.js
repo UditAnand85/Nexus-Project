@@ -4,6 +4,10 @@ import adminAuthRoutes from './admin.auth.routes.js';
 import jobsRoutes from './jobs.routes.js';
 import studentsRoutes from './students.routes.js';
 import shortlistedRoutes from './shortlisted.routes.js';
+import employeesRoutes from './employees.routes.js';
+import { getStats } from '../controllers/stats.controller.js';
+import { getMyApplications } from '../controllers/user.auth.controller.js';
+import { authenticateAdmin, authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -15,6 +19,11 @@ router.use('/auth/admin', adminAuthRoutes);
 router.use('/jobs', jobsRoutes);
 router.use('/students', studentsRoutes);
 router.use('/shortlisted', shortlistedRoutes);
+router.use('/employees', employeesRoutes);
+
+// ─── Stats & Dashboard ────────────────────────────────────────────────────────
+router.get('/stats', authenticateAdmin, getStats);
+router.get('/me/applications', authenticateToken, getMyApplications);
 
 // ─── API Info ─────────────────────────────────────────────────────────────────
 router.get('/', (_req, res) => {

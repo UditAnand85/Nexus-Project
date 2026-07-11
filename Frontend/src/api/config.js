@@ -23,6 +23,7 @@ export async function apiFetch(path, options = {}, tokenRole = "admin") {
   const token = getAuthToken(tokenRole);
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -47,10 +48,15 @@ export async function apiFetch(path, options = {}, tokenRole = "admin") {
 
 // Lets the app show a clear "backend not reachable" banner instead of
 // silently failing every request when USE_MOCK is false.
+// NOTE: /health is at the root (http://localhost:5000/health), not under /api/v1
+export const BACKEND_ROOT_URL = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, "")
+  : "http://localhost:5000";
+
 export async function checkBackendHealth() {
   if (USE_MOCK) return { ok: true, mock: true };
   try {
-    const res = await fetch(`${API_BASE_URL}/health`, { method: "GET" });
+    const res = await fetch(`${BACKEND_ROOT_URL}/health`, { method: "GET" });
     return { ok: res.ok, mock: false };
   } catch {
     return { ok: false, mock: false };

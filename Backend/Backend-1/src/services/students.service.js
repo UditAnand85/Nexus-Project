@@ -1,6 +1,6 @@
 import { eq, desc, and } from 'drizzle-orm';
 import { db } from '../config/db.js';
-import { students, jobs } from '../db/schema/index.js';
+import { students, jobs, shortlistedStudents } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { addResumeJob } from '../queues/resumeQueue.js';
 
@@ -105,8 +105,26 @@ export const getStudentsByJob = async (jobId) => {
 
 export const getStudentById = async (studentId) => {
   const result = await db
-    .select()
+    .select({
+      student_id: students.student_id,
+      full_name: students.full_name,
+      email: students.email,
+      phone: students.phone,
+      job_id: students.job_id,
+      resume_url: students.resume_url,
+      resume_score: students.resume_score,
+      application_status: students.application_status,
+      created_at: students.created_at,
+      shortlisted_id: shortlistedStudents.shortlisted_id,
+      video_url: shortlistedStudents.video_url,
+      video_score: shortlistedStudents.video_score,
+      aptitude_score: shortlistedStudents.aptitude_score,
+      final_score: shortlistedStudents.final_score,
+      recommendation: shortlistedStudents.recommendation,
+      current_stage: shortlistedStudents.current_stage,
+    })
     .from(students)
+    .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.student_id, studentId))
     .limit(1);
 

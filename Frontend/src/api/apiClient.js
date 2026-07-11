@@ -149,19 +149,24 @@ function rankStudents(job_id) {
 
 // ---- Reads ----
 
+// ---- Reads ----
+
 export async function getJobs() {
   if (USE_MOCK) { await delay(); return [...jobs]; }
-  return apiFetch("/jobs");
+  const res = await apiFetch("/jobs");
+  return res.data;
 }
 
 export async function getJob(job_id) {
   if (USE_MOCK) { await delay(); return jobs.find((j) => j.job_id === job_id) || null; }
-  return apiFetch(`/jobs/${job_id}`);
+  const res = await apiFetch(`/jobs/${job_id}`);
+  return res.data;
 }
 
 export async function getRankedStudents(job_id) {
   if (USE_MOCK) { await delay(); return rankStudents(job_id); }
-  return apiFetch(`/jobs/${job_id}/candidates`, {}, "admin");
+  const res = await apiFetch(`/jobs/${job_id}/candidates`, {}, "admin");
+  return res.data;
 }
 
 export async function getStudentDetail(student_id) {
@@ -172,7 +177,8 @@ export async function getStudentDetail(student_id) {
     const sl = shortlistedStudents.find((x) => x.student_id === student_id) || {};
     return { ...s, ...sl };
   }
-  return apiFetch(`/students/${student_id}`, {}, "admin");
+  const res = await apiFetch(`/students/${student_id}`, {}, "admin");
+  return res.data;
 }
 
 export async function getStats() {
@@ -185,7 +191,8 @@ export async function getStats() {
       finalInterviewCount: shortlistedStudents.filter((s) => s.current_stage === "final_interview").length,
     };
   }
-  return apiFetch("/stats", {}, "admin");
+  const res = await apiFetch("/stats", {}, "admin");
+  return res.data;
 }
 
 // Every application submitted by the currently logged-in candidate.
@@ -203,7 +210,8 @@ export async function getMyApplications() {
         return { ...s, ...sl, job_title: job?.job_title };
       });
   }
-  return apiFetch("/me/applications", {}, "student");
+  const res = await apiFetch("/me/applications", {}, "student");
+  return res.data;
 }
 
 // ---- Writes ----
@@ -215,10 +223,11 @@ export async function createJob(jobData) {
     jobs = [...jobs, newJob];
     return newJob;
   }
-  return apiFetch("/jobs", { method: "POST", body: JSON.stringify(jobData) }, "admin");
+  const res = await apiFetch("/jobs", { method: "POST", body: JSON.stringify(jobData) }, "admin");
+  return res.data;
 }
 
-// formFields: { skills, achievements, job_id } — name/email/phone come from the logged-in account
+// formFields: { job_id } — name/email/phone come from the logged-in account
 // resumeFile: File object from <input type="file">
 export async function submitApplication(formFields, resumeFile, account) {
   if (USE_MOCK) {
@@ -238,9 +247,12 @@ export async function submitApplication(formFields, resumeFile, account) {
     return newStudent;
   }
   const body = new FormData();
-  Object.entries(formFields).forEach(([key, value]) => body.append(key, value));
+  body.append("full_name", formFields.full_name || account?.full_name || "");
+  body.append("email", formFields.email || account?.email || "");
+  body.append("phone", formFields.phone || account?.phone || "");
   if (resumeFile) body.append("resume", resumeFile);
-  return apiFetch("/students", { method: "POST", body }, "student");
+  const res = await apiFetch(`/students/apply/${formFields.job_id}`, { method: "POST", body }, "student");
+  return res.data;
 }
 
 // videoBlob: Blob from MediaRecorder
@@ -251,7 +263,8 @@ export async function uploadEvaluationVideo(student_id, videoBlob) {
   }
   const body = new FormData();
   body.append("video", videoBlob, `${student_id}_intro.webm`);
-  return apiFetch(`/students/${student_id}/video`, { method: "POST", body }, "student");
+  const res = await apiFetch(`/students/${student_id}/video`, { method: "POST", body }, "student");
+  return res;
 }
 
 // ---- Admin auth ----
@@ -263,18 +276,42 @@ export async function adminLogin(email, password) {
     if (!admin) throw new Error("No admin account with that email.");
     const token = "mock-admin-token-" + admin.admin_id;
     setAuthToken("admin", token);
+    localStorage.setItem("recruitai_admin_user", JSON.stringify(admin));
     return { token, admin };
   }
   const result = await apiFetch("/auth/admin/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  setAuthToken("admin", result.token);
-  return result;
+  // Since cookie auth is used, token is in cookie. Store admin user data.
+  const admin = result.data.admin;
+  localStorage.setItem("recruitai_admin_user", JSON.stringify(admin));
+  setAuthToken("admin", "session-active"); // Flag to satisfy frontend token check
+  return { admin };
 }
 
 export function adminLogout() {
+  localStorage.removeItem("recruitai_admin_user");
   setAuthToken("admin", null);
+  if (!USE_MOCK) {
+    apiFetch("/auth/admin/logout", { method: "POST" }, "admin").catch(() => {});
+  }
+}
+
+export async function getAdminMe() {
+  if (USE_MOCK) {
+    return admins[0];
+  }
+  const result = await apiFetch("/auth/admin/me", {}, "admin");
+  const admin = result.data.admin;
+  localStorage.setItem("recruitai_admin_user", JSON.stringify(admin));
+  return admin;
+}
+
+export function getStoredAdmin() {
+  if (USE_MOCK) return admins[0];
+  const adminStr = localStorage.getItem("recruitai_admin_user");
+  return adminStr ? JSON.parse(adminStr) : null;
 }
 
 // ---- Candidate auth ----
@@ -291,12 +328,13 @@ export async function studentRegister({ full_name, email, phone, password }) {
     setAuthToken("student", token);
     return { token, account };
   }
-  const result = await apiFetch("/auth/student/register", {
+  // Register the user — the register endpoint does NOT issue a cookie.
+  await apiFetch("/auth/user/register", {
     method: "POST",
     body: JSON.stringify({ full_name, email, phone, password }),
   });
-  setAuthToken("student", result.token);
-  return result;
+  // Immediately log in to get the JWT cookie + persist session in localStorage.
+  return studentLogin(email, password);
 }
 
 export async function studentLogin(email, password) {
@@ -310,27 +348,79 @@ export async function studentLogin(email, password) {
     setAuthToken("student", token);
     return { token, account };
   }
-  const result = await apiFetch("/auth/student/login", {
+  const result = await apiFetch("/auth/user/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  setAuthToken("student", result.token);
-  return result;
+  const user = result.data.user;
+  const account = { ...user, account_id: user.user_id };
+  localStorage.setItem("recruitai_student_user", JSON.stringify(account));
+  setAuthToken("student", "session-active"); // Flag to satisfy frontend check
+  return { account };
 }
 
 export function studentLogout() {
+  localStorage.removeItem("recruitai_student_user");
   setAuthToken("student", null);
+  if (!USE_MOCK) {
+    apiFetch("/auth/user/logout", { method: "POST" }, "student").catch(() => {});
+  }
+}
+
+export async function getStudentMe() {
+  if (USE_MOCK) {
+    return getStoredStudentAccount();
+  }
+  const result = await apiFetch("/auth/user/me", {}, "student");
+  const user = result.data.user;
+  const account = { ...user, account_id: user.user_id };
+  localStorage.setItem("recruitai_student_user", JSON.stringify(account));
+  return account;
 }
 
 export function getStoredStudentAccount() {
-  // In mock mode we can look the account up from the token; in live mode
-  // the backend should return the account on login/register and the app
-  // should keep it in memory (see App.jsx) rather than re-deriving it here.
-  if (!USE_MOCK) return null;
-  const token = getAuthToken("student");
-  if (!token) return null;
-  const accountId = token.replace("mock-student-token-", "");
-  return studentAccounts.find((a) => a.account_id === accountId) || null;
+  if (USE_MOCK) {
+    const token = getAuthToken("student");
+    if (!token) return null;
+    const accountId = token.replace("mock-student-token-", "");
+    return studentAccounts.find((a) => a.account_id === accountId) || null;
+  }
+  const userStr = localStorage.getItem("recruitai_student_user");
+  return userStr ? JSON.parse(userStr) : null;
+}
+
+// ---- Employee management (Super Admin) ----
+
+export async function getEmployees() {
+  if (USE_MOCK) { await delay(); return []; }
+  const res = await apiFetch("/employees", {}, "admin");
+  return res.data;
+}
+
+export async function createEmployee(data) {
+  if (USE_MOCK) { await delay(); return { employee: data, tempPassword: "TempPass@123" }; }
+  const res = await apiFetch("/employees", { method: "POST", body: JSON.stringify(data) }, "admin");
+  return res.data; // { employee, tempPassword }
+}
+
+export async function changeAdminPassword({ current_password, new_password }) {
+  if (USE_MOCK) { await delay(); return { success: true }; }
+  const res = await apiFetch("/employees/change-password", {
+    method: "PATCH",
+    body: JSON.stringify({ current_password, new_password }),
+  }, "admin");
+  return res;
+}
+
+export async function stopShortlisting(job_id) {
+  if (USE_MOCK) {
+    await delay();
+    const job = jobs.find((j) => j.job_id === job_id);
+    if (job) job.job_status = "Shortlisting Closed";
+    return job;
+  }
+  const res = await apiFetch(`/jobs/${job_id}/stop-shortlisting`, { method: "PATCH" }, "admin");
+  return res.data;
 }
 
 export const STAGE_LABEL = {
@@ -339,4 +429,8 @@ export const STAGE_LABEL = {
   awaiting_video: { cls: "review", label: "Awaiting video" },
   rejected: { cls: "review", label: "Rejected" },
   under_review: { cls: "review", label: "Under review" },
+  Applied: { cls: "review", label: "Applied" },
+  Shortlisted: { cls: "invited", label: "Shortlisted" },
+  Rejected: { cls: "review", label: "Rejected" },
+  Hired: { cls: "invited", label: "Hired" },
 };
