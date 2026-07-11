@@ -1,0 +1,147 @@
+# RecruitAI — Frontend
+
+An AI-assisted recruitment platform frontend, built with React, Vite, and Tailwind CSS.
+Candidates browse open roles, apply, and complete a two-stage evaluation (video
+introduction + aptitude test). Recruiters manage job postings and review a ranked,
+scored candidate list.
+
+## Project structure
+
+```
+Frontend/
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── package.json
+├── src/
+│   ├── api/
+│   │   └── mockApi.js        In-memory data layer (ADMIN, JOBS, STUDENTS, SHORTLISTED_STUDENTS)
+│   ├── components/
+│   │   ├── Navbar.jsx
+│   │   ├── JobRow.jsx
+│   │   ├── StageTracker.jsx
+│   │   ├── CandidateRow.jsx
+│   │   └── CandidateDrawer.jsx
+│   ├── constants/
+│   │   └── roles.js
+│   ├── pages/
+│   │   ├── CareerPortal.jsx
+│   │   ├── JobDetail.jsx
+│   │   ├── Apply.jsx
+│   │   ├── Evaluation.jsx
+│   │   ├── AdminLogin.jsx
+│   │   ├── AdminDashboard.jsx
+│   │   └── JobCreate.jsx
+│   ├── utils/
+│   │   └── format.js
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+```
+
+## Getting started
+
+```bash
+cd Frontend
+npm install
+npm run dev
+```
+
+Then open the URL Vite prints (usually `http://localhost:5173`).
+
+To build a production bundle:
+
+```bash
+npm run build
+npm run preview
+```
+
+## What's implemented
+
+**Candidate side**
+- Job listing and job detail pages, with loading and error states
+- Application form with real client-side validation (name, email, phone, skills,
+  resume file type/size check) and real submission via `multipart/form-data`
+- Evaluation flow: a working camera/microphone recording step using the browser's
+  `getUserMedia` + `MediaRecorder` APIs (with a clear message if permission is
+  denied), which uploads the recorded clip to the backend, followed by an
+  aptitude quiz
+
+**Admin side**
+- Login screen with real authentication (token stored and attached to
+  subsequent requests)
+- Dashboard with live stats, loading and error states throughout
+- **Jobs** tab: list of postings, "+ New job" form matching the JOBS table fields
+  (title, CTC, location, employment type, openings, application window, description,
+  evaluation prompt, email template)
+- **Candidates** tab: ranked list per job (joined from STUDENTS + SHORTLISTED_STUDENTS,
+  sorted by `final_score`), with a detail drawer per candidate
+
+## Connecting to a real backend
+
+The frontend talks to one file only: `src/api/apiClient.js`. A flag in `.env`
+controls whether it uses built-in sample data or calls a real server:
+
+```
+# .env
+VITE_USE_MOCK=true                              # sample data, no backend needed
+VITE_API_BASE_URL=http://localhost:5000/api      # used once VITE_USE_MOCK=false
+```
+
+To switch over once your backend is ready: set `VITE_USE_MOCK=false`, point
+`VITE_API_BASE_URL` at the real server, and restart `npm run dev`. No other
+file needs to change — every page calls the same functions
+(`getJobs`, `getJob`, `submitApplication`, `adminLogin`, etc.) either way.
+
+### Expected backend endpoints
+
+This is the contract `apiClient.js` expects — share it directly with whoever
+is building the backend:
+
+| Method | Path | Returns | Notes |
+|---|---|---|---|
+| GET | `/jobs` | `Job[]` | |
+| GET | `/jobs/:job_id` | `Job` | |
+| POST | `/jobs` | `Job` | auth required |
+| GET | `/jobs/:job_id/candidates` | `Student[]` | ranked, joined with SHORTLISTED_STUDENTS |
+| GET | `/students/:student_id` | `Student` | joined with SHORTLISTED_STUDENTS |
+| POST | `/students` | `Student` | `multipart/form-data`: full_name, email, phone, skills, achievements, job_id, resume |
+| POST | `/students/:student_id/video` | `{ ok: true }` | `multipart/form-data`: video |
+| GET | `/stats` | `{ openJobs, totalStudents, shortlistedCount, finalInterviewCount }` | |
+| POST | `/auth/login` | `{ token }` | body: `{ email, password }` |
+| GET | `/health` | 200 OK | used for the "backend offline" banner |
+
+Field names match the ER diagram's column names exactly (`job_title`,
+`expected_ctc`, `resume_score`, `current_stage`, etc.) so the JSON your
+backend returns can usually be the row straight from the database.
+
+### Things to agree on with your backend developer
+
+1. **CORS** — the backend must allow requests from the frontend's origin
+   (e.g. `http://localhost:5173`) or the browser blocks every request. In
+   Express this is one line via the `cors` package.
+2. **Auth** — `POST /auth/login` should return a `{ token }`. The frontend
+   stores it and sends it as `Authorization: Bearer <token>` on every
+   request afterward (see `src/api/config.js`).
+3. **File uploads** — resumes and evaluation videos are sent as
+   `multipart/form-data`, not JSON. The backend needs a file-upload
+   middleware (e.g. `multer` in Express) on those two routes.
+4. **Error format** — if a request fails, the frontend looks for a JSON
+   body like `{ "message": "..." }` to show the person a real error
+   instead of a generic one.
+
+### What happens if the backend isn't running
+
+With `VITE_USE_MOCK=false`, the app pings `/health` on load. If that fails,
+a banner appears at the top of the page instead of the app silently
+breaking. Every page also shows its own loading and error states — a slow
+or failed request never looks like a frozen or broken screen.
+
+
+
+The one unresolved question from the product spec is exactly how a student gets
+marked "shortlisted" — by percentile, by a fixed score threshold, or by rank. This
+build follows the rank-based approach (`getRankedStudents` sorts by `final_score`
+and assigns rank client-side), since that's what the admin dashboard needs to render
+either way. If the actual business rule changes, only that one function needs updating.

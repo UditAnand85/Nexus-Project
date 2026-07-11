@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #F3F4F1;
+  color: #1B2430;
+}
+
+body {
+  font-family: "Work Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: "Fraunces", serif;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+::selection {
+  background: #1B2430;
+  color: #F3F4F1;
+}
+
+input, textarea, select {
+  font-family: "Work Sans", sans-serif;
+}
+
+.btn-primary {
+  font-family: "Work Sans", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 13px 26px;
+  border-radius: 2px;
+  border: 1px solid #1B2430;
+  background: #1B2430;
+  color: #F3F4F1;
+  transition: 0.15s;
+  cursor: pointer;
+}
+.btn-primary:hover { background: transparent; color: #1B2430; }
+
+.btn-ghost {
+  font-family: "Work Sans", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 13px 26px;
+  border-radius: 2px;
+  border: 1px solid #1B2430;
+  background: transparent;
+  color: #1B2430;
+  transition: 0.15s;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: #1B2430; color: #F3F4F1; }
+
+.field-input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #DADFDC;
+  background: #F3F4F1;
+  font-size: 14px;
+  border-radius: 2px;
+}
+.field-input:focus {
+  outline: none;
+  border-color: #1B2430;
+}
