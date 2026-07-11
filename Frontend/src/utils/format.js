@@ -18,6 +18,10 @@ export function validateResumeFile(file) {
   return null;
 }
 
+export function validatePassword(pw) {
+  return typeof pw === "string" && pw.length >= 6;
+}
+
 export function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }

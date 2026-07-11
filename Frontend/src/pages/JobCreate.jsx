@@ -40,7 +40,7 @@ export default function JobCreate({ onBack, onPublished }) {
       </button>
       <h1 className="text-[28px] font-medium mb-6">New job posting</h1>
 
-      <div className="bg-panel border border-line p-8 max-w-[640px]">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-8 max-w-[640px]">
         <Field label="job_title">
           <input className="field-input" placeholder="e.g. Backend Engineer" value={form.job_title} onChange={update("job_title")} />
         </Field>

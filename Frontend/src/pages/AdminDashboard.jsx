@@ -6,7 +6,7 @@ import JobRow from "../components/JobRow";
 import CandidateRow from "../components/CandidateRow";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function AdminDashboard({ onNewJob, onOpenCandidate }) {
+export default function AdminDashboard({ onNewJob, onOpenCandidate, onLogout }) {
   const [tab, setTab] = useState("jobs");
   const [activeJobId, setActiveJobId] = useState("JOB-1001");
 
@@ -24,10 +24,13 @@ export default function AdminDashboard({ onNewJob, onOpenCandidate }) {
     <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
       <div className="flex justify-between items-end mb-8">
         <h1 className="text-[30px] font-medium">Recruitment overview</h1>
-        <button onClick={onNewJob} className="btn-ghost">+ New job</button>
+        <div className="flex gap-3">
+          <button onClick={onNewJob} className="btn-primary">+ New job</button>
+          <button onClick={onLogout} className="btn-ghost">Log out</button>
+        </div>
       </div>
 
-      <div className="flex border border-line mb-10">
+      <div className="flex border border-line rounded-xl shadow-sm overflow-hidden mb-10 bg-panel">
         <Stat num={stats?.openJobs ?? "—"} label="JOBS (job_status = open)" />
         <Stat num={stats?.totalStudents ?? "—"} label="STUDENTS (total rows)" />
         <Stat num={stats?.shortlistedCount ?? "—"} label="SHORTLISTED_STUDENTS rows" />
@@ -105,7 +108,7 @@ export default function AdminDashboard({ onNewJob, onOpenCandidate }) {
 function Stat({ num, label, last }) {
   return (
     <div className={`flex-1 py-5 px-6 ${!last ? "border-r border-line" : ""}`}>
-      <div className="font-mono text-[26px] font-semibold">{num}</div>
+      <div className="font-mono text-[26px] font-semibold text-primary">{num}</div>
       <div className="text-xs text-inksoft mt-1">{label}</div>
     </div>
   );

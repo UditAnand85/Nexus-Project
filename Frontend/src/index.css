@@ -7,8 +7,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: #F3F4F1;
-  color: #1B2430;
+  background-color: #F5F5F1;
+  color: #1A1D2B;
 }
 
 body {
@@ -23,8 +23,8 @@ h1, h2, h3 {
 }
 
 ::selection {
-  background: #1B2430;
-  color: #F3F4F1;
+  background: #2C3B8F;
+  color: #FFFFFF;
 }
 
 input, textarea, select {
@@ -35,39 +35,44 @@ input, textarea, select {
   font-family: "Work Sans", sans-serif;
   font-weight: 500;
   font-size: 14px;
-  padding: 13px 26px;
-  border-radius: 2px;
-  border: 1px solid #1B2430;
-  background: #1B2430;
-  color: #F3F4F1;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #2C3B8F;
+  background: #2C3B8F;
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(44, 59, 143, 0.08);
   transition: 0.15s;
   cursor: pointer;
 }
-.btn-primary:hover { background: transparent; color: #1B2430; }
+.btn-primary:hover { background: #212C6B; border-color: #212C6B; box-shadow: 0 4px 10px rgba(44, 59, 143, 0.18); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
 
 .btn-ghost {
   font-family: "Work Sans", sans-serif;
   font-weight: 500;
   font-size: 14px;
-  padding: 13px 26px;
-  border-radius: 2px;
-  border: 1px solid #1B2430;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid #D5D7D1;
   background: transparent;
-  color: #1B2430;
+  color: #1A1D2B;
   transition: 0.15s;
   cursor: pointer;
 }
-.btn-ghost:hover { background: #1B2430; color: #F3F4F1; }
+.btn-ghost:hover { background: #FFFFFF; border-color: #2C3B8F; color: #2C3B8F; }
 
 .field-input {
   width: 100%;
-  padding: 11px 12px;
-  border: 1px solid #DADFDC;
-  background: #F3F4F1;
+  padding: 11px 13px;
+  border: 1px solid #E3E4DE;
+  background: #FCFCFB;
   font-size: 14px;
-  border-radius: 2px;
+  border-radius: 8px;
+  transition: 0.15s;
 }
 .field-input:focus {
   outline: none;
-  border-color: #1B2430;
+  border-color: #2C3B8F;
+  box-shadow: 0 0 0 3px rgba(44, 59, 143, 0.12);
+  background: #FFFFFF;
 }

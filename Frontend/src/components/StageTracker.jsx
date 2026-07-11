@@ -17,7 +17,7 @@ export default function StageTracker({ currentIndex }) {
             )}
             <div
               className={`relative z-10 w-[11px] h-[11px] rounded-full mx-auto mb-2 border-2 border-paper ${
-                done ? "bg-go" : current ? "bg-ink" : "bg-line"
+                done ? "bg-go" : current ? "bg-primary" : "bg-line"
               }`}
             />
             <label className="font-mono text-[11px] text-inksoft whitespace-pre-line">{stage.label}</label>

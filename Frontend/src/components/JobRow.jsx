@@ -5,7 +5,7 @@ export default function JobRow({ job, onClick, adminMeta = false }) {
     <div
       onClick={onClick}
       className={`grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center py-[22px] px-1 border-b border-line transition ${
-        onClick ? "cursor-pointer hover:bg-panel hover:px-4" : ""
+        onClick ? "cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm hover:px-4" : ""
       }`}
     >
       <div>

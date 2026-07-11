@@ -1,7 +1,7 @@
 import { formatDate } from "../utils/format";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function JobDetail({ job, loading, error, onBack, onApply, onRetry }) {
+export default function JobDetail({ job, loading, error, onBack, onApply, onRetry, requiresLogin }) {
   if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
   if (error) return <div className="max-w-[1080px] mx-auto px-8 py-12"><ErrorState message={error} onRetry={onRetry} /></div>;
   if (!job) return null;
@@ -18,7 +18,7 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
 
       <div className="flex gap-2 my-4 mb-8 flex-wrap">
         {tags.map((t) => (
-          <span key={t} className="font-mono text-[11px] px-2.5 py-1.5 border border-line rounded-full text-inksoft">
+          <span key={t} className="font-mono text-[11px] px-2.5 py-1.5 border border-line rounded-full text-inksoft bg-panel">
             {t}
           </span>
         ))}
@@ -39,9 +39,12 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
         </ul>
       </div>
 
-      <div className="mt-10 flex gap-3.5">
+      <div className="mt-10 flex gap-3.5 items-center">
         <button onClick={onApply} className="btn-primary">Apply now</button>
         <button onClick={onBack} className="btn-ghost">Back to roles</button>
+        {requiresLogin && (
+          <span className="text-inksoft text-xs font-mono">Sign in required to apply</span>
+        )}
       </div>
     </div>
   );

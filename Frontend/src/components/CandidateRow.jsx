@@ -27,7 +27,7 @@ export default function CandidateRow({ student, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="grid grid-cols-[34px_1.4fr_repeat(4,90px)_110px] gap-3.5 items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel"
+      className="grid grid-cols-[34px_1.4fr_repeat(4,90px)_110px] gap-3.5 items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm"
     >
       <span className="font-mono text-inksoft">{student.rank}</span>
       <div>

@@ -5,10 +5,13 @@ import CareerPortal from "./pages/CareerPortal";
 import JobDetail from "./pages/JobDetail";
 import Apply from "./pages/Apply";
 import Evaluation from "./pages/Evaluation";
+import StudentLogin from "./pages/StudentLogin";
+import StudentRegister from "./pages/StudentRegister";
+import MyApplications from "./pages/MyApplications";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import JobCreate from "./pages/JobCreate";
-import { getJob, getStudentDetail } from "./api/apiClient";
+import { getJob, getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout } from "./api/apiClient";
 import { checkBackendHealth, getAuthToken } from "./api/config";
 import { useApi } from "./utils/useApi";
 import { BackendOfflineBanner } from "./components/Status";
@@ -18,8 +21,12 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [submittedStudent, setSubmittedStudent] = useState(null);
   const [drawerStudentId, setDrawerStudentId] = useState(null);
-  const [isAdminAuthed, setIsAdminAuthed] = useState(!!getAuthToken());
+  const [isAdminAuthed, setIsAdminAuthed] = useState(!!getAuthToken("admin"));
+  const [studentAccount, setStudentAccount] = useState(() => getStoredStudentAccount());
   const [backendOk, setBackendOk] = useState(true);
+  const [pendingApplyJobId, setPendingApplyJobId] = useState(null);
+
+  const isStudentAuthed = !!studentAccount;
 
   useEffect(() => {
     checkBackendHealth().then((result) => setBackendOk(result.ok));
@@ -37,6 +44,38 @@ export default function App() {
   const openJob = (jobId) => {
     setSelectedJobId(jobId);
     setView("jobDetail");
+  };
+
+  const startApply = () => {
+    if (!isStudentAuthed) {
+      setPendingApplyJobId(selectedJobId);
+      navigate("student-login");
+      return;
+    }
+    navigate("apply");
+  };
+
+  const handleStudentAuthed = (account) => {
+    setStudentAccount(account);
+    if (pendingApplyJobId) {
+      setSelectedJobId(pendingApplyJobId);
+      setPendingApplyJobId(null);
+      navigate("apply");
+    } else {
+      navigate("portal");
+    }
+  };
+
+  const handleStudentLogout = () => {
+    studentLogout();
+    setStudentAccount(null);
+    navigate("portal");
+  };
+
+  const handleAdminLogout = () => {
+    adminLogout();
+    setIsAdminAuthed(false);
+    navigate("portal");
   };
 
   const {
@@ -60,7 +99,12 @@ export default function App() {
     <div>
       {!backendOk && <BackendOfflineBanner />}
 
-      <Navbar view={view} onNavigate={navigate} />
+      <Navbar
+        view={view}
+        isStudentAuthed={isStudentAuthed}
+        isAdminAuthed={isAdminAuthed}
+        onNavigate={navigate}
+      />
 
       {view === "portal" && <CareerPortal onOpenJob={openJob} />}
 
@@ -71,13 +115,15 @@ export default function App() {
           error={jobError}
           onRetry={refetchJob}
           onBack={() => navigate("portal")}
-          onApply={() => navigate("apply")}
+          onApply={startApply}
+          requiresLogin={!isStudentAuthed}
         />
       )}
 
       {view === "apply" && (
         <Apply
           job={selectedJob}
+          account={studentAccount}
           onBack={() => navigate("jobDetail")}
           onSubmitted={(student) => {
             setSubmittedStudent(student);
@@ -87,6 +133,18 @@ export default function App() {
       )}
 
       {view === "evaluation" && <Evaluation student={submittedStudent} />}
+
+      {view === "student-login" && (
+        <StudentLogin onLoggedIn={handleStudentAuthed} onGoToRegister={() => navigate("student-register")} />
+      )}
+
+      {view === "student-register" && (
+        <StudentRegister onRegistered={handleStudentAuthed} onGoToLogin={() => navigate("student-login")} />
+      )}
+
+      {view === "my-applications" && (
+        <MyApplications account={studentAccount} onBrowseJobs={() => navigate("portal")} onLogout={handleStudentLogout} />
+      )}
 
       {view === "admin-login" && (
         <AdminLogin
@@ -101,6 +159,7 @@ export default function App() {
         <AdminDashboard
           onNewJob={() => navigate("job-create")}
           onOpenCandidate={(id) => setDrawerStudentId(id)}
+          onLogout={handleAdminLogout}
         />
       )}
 

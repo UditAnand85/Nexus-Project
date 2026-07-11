@@ -60,9 +60,19 @@ npm run preview
 ## What's implemented
 
 **Candidate side**
+- **Registration and sign-in** — a separate account system from admin, so a
+  candidate creates one account and can apply to multiple roles under it
+  (email/password, stored as a `STUDENT_ACCOUNTS`-style table — see the note
+  below on why this is separate from the STUDENTS table in the ER diagram)
+- **My Applications** — once signed in, a candidate sees every application
+  they've submitted and its current stage/scores, no need to re-enter details
 - Job listing and job detail pages, with loading and error states
-- Application form with real client-side validation (name, email, phone, skills,
-  resume file type/size check) and real submission via `multipart/form-data`
+- "Apply now" requires being signed in — clicking it while logged out sends
+  you to sign-in/registration first, then continues the application
+  automatically once you're in
+- Application form (skills, achievements, resume) — name/email/phone are
+  pulled from the signed-in account instead of being re-typed — validated
+  and submitted via `multipart/form-data`
 - Evaluation flow: a working camera/microphone recording step using the browser's
   `getUserMedia` + `MediaRecorder` APIs (with a clear message if permission is
   denied), which uploads the recorded clip to the backend, followed by an
@@ -70,13 +80,30 @@ npm run preview
 
 **Admin side**
 - Login screen with real authentication (token stored and attached to
-  subsequent requests)
+  subsequent requests), separate from the candidate login
 - Dashboard with live stats, loading and error states throughout
 - **Jobs** tab: list of postings, "+ New job" form matching the JOBS table fields
   (title, CTC, location, employment type, openings, application window, description,
   evaluation prompt, email template)
 - **Candidates** tab: ranked list per job (joined from STUDENTS + SHORTLISTED_STUDENTS,
   sorted by `final_score`), with a detail drawer per candidate
+
+## Design system
+
+- **Typeface**: Fraunces (serif, headings) + Work Sans (body) + IBM Plex Mono
+  (scores, IDs, technical labels) — the mono face is what gives the ranked
+  candidate list and stat numbers their "data terminal" feel.
+- **Color**: a deep indigo primary (`#2C3B8F`) for all primary actions and
+  active states, on a warm off-white background, with green/amber/red used
+  consistently for status only (open/shortlisted = green, waitlisted = amber,
+  rejected/error = red) — so color always means the same thing everywhere.
+- **Shape**: rounded corners (8–12px) and soft shadows on cards, buttons, and
+  inputs throughout, replacing sharp/flat edges — this is what usually reads
+  as "polished SaaS product" rather than "internal tool."
+
+All of this lives in `tailwind.config.js` (color tokens) and `src/index.css`
+(button/input base styles) — change a color there and it updates everywhere.
+
 
 ## Connecting to a real backend
 
@@ -103,27 +130,51 @@ is building the backend:
 |---|---|---|---|
 | GET | `/jobs` | `Job[]` | |
 | GET | `/jobs/:job_id` | `Job` | |
-| POST | `/jobs` | `Job` | auth required |
-| GET | `/jobs/:job_id/candidates` | `Student[]` | ranked, joined with SHORTLISTED_STUDENTS |
-| GET | `/students/:student_id` | `Student` | joined with SHORTLISTED_STUDENTS |
-| POST | `/students` | `Student` | `multipart/form-data`: full_name, email, phone, skills, achievements, job_id, resume |
-| POST | `/students/:student_id/video` | `{ ok: true }` | `multipart/form-data`: video |
-| GET | `/stats` | `{ openJobs, totalStudents, shortlistedCount, finalInterviewCount }` | |
-| POST | `/auth/login` | `{ token }` | body: `{ email, password }` |
+| POST | `/jobs` | `Job` | admin auth |
+| GET | `/jobs/:job_id/candidates` | `Student[]` | ranked, joined with SHORTLISTED_STUDENTS, admin auth |
+| GET | `/students/:student_id` | `Student` | joined with SHORTLISTED_STUDENTS, admin auth |
+| POST | `/students` | `Student` | student auth, `multipart/form-data`: skills, achievements, job_id, resume |
+| POST | `/students/:student_id/video` | `{ ok: true }` | student auth, `multipart/form-data`: video |
+| GET | `/me/applications` | `Student[]` | student auth — every application this account has submitted |
+| GET | `/stats` | `{ openJobs, totalStudents, shortlistedCount, finalInterviewCount }` | admin auth |
+| POST | `/auth/admin/login` | `{ token, admin }` | body: `{ email, password }` |
+| POST | `/auth/student/register` | `{ token, account }` | body: `{ full_name, email, phone, password }` |
+| POST | `/auth/student/login` | `{ token, account }` | body: `{ email, password }` |
 | GET | `/health` | 200 OK | used for the "backend offline" banner |
 
 Field names match the ER diagram's column names exactly (`job_title`,
 `expected_ctc`, `resume_score`, `current_stage`, etc.) so the JSON your
 backend returns can usually be the row straight from the database.
 
+**Important schema note for your backend developer:** the original ER
+diagram's `STUDENTS` table is one row per *application* (a person applying
+to two jobs = two STUDENTS rows), and has no password column — it wasn't
+designed for login. Candidate accounts need a separate table, something like:
+
+```
+STUDENT_ACCOUNTS
+  account_id      PK
+  full_name
+  email           UNIQUE
+  phone
+  password_hash
+```
+
+with `STUDENTS.account_id` added as a foreign key back to it. Hash
+passwords (bcrypt or similar) — never store them in plain text. The mock
+data in `apiClient.js` models this same split (`studentAccounts` vs.
+`students`) so the frontend behavior already assumes this backend shape.
+
 ### Things to agree on with your backend developer
 
 1. **CORS** — the backend must allow requests from the frontend's origin
    (e.g. `http://localhost:5173`) or the browser blocks every request. In
    Express this is one line via the `cors` package.
-2. **Auth** — `POST /auth/login` should return a `{ token }`. The frontend
-   stores it and sends it as `Authorization: Bearer <token>` on every
-   request afterward (see `src/api/config.js`).
+2. **Auth** — `POST /auth/admin/login` and `POST /auth/student/login` (and
+   `/auth/student/register`) should each return a `{ token }`. The frontend
+   stores admin and student tokens separately and sends the right one as
+   `Authorization: Bearer <token>` depending on which kind of request it is
+   (see `src/api/config.js`).
 3. **File uploads** — resumes and evaluation videos are sent as
    `multipart/form-data`, not JSON. The backend needs a file-upload
    middleware (e.g. `multer` in Express) on those two routes.

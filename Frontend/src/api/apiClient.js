@@ -10,27 +10,46 @@
  * -------------------------------------------------------------------
  * EXPECTED BACKEND ENDPOINTS (share this section with your backend dev)
  * -------------------------------------------------------------------
- *   GET    /jobs                        -> Job[]
- *   GET    /jobs/:job_id                -> Job
- *   POST   /jobs                        -> Job              (auth required)
- *   GET    /jobs/:job_id/candidates     -> Student[]         (ranked, joined with SHORTLISTED_STUDENTS)
- *   GET    /students/:student_id        -> Student           (joined with SHORTLISTED_STUDENTS)
- *   POST   /students                    -> Student           (multipart/form-data: full_name, email,
- *                                                              phone, skills, achievements, job_id, resume)
- *   POST   /students/:student_id/video  -> { ok: true }      (multipart/form-data: video)
- *   GET    /stats                       -> { openJobs, totalStudents, shortlistedCount, finalInterviewCount }
- *   POST   /auth/login                  -> { token }         (body: { email, password })
- *   GET    /health                      -> 200 OK if server is up
+ *   GET    /jobs                          -> Job[]
+ *   GET    /jobs/:job_id                  -> Job
+ *   POST   /jobs                          -> Job              (admin auth)
+ *   GET    /jobs/:job_id/candidates       -> Student[]         (ranked, joined with SHORTLISTED_STUDENTS, admin auth)
+ *   GET    /students/:student_id          -> Student           (joined with SHORTLISTED_STUDENTS)
+ *   POST   /students                      -> Student           (student auth, multipart/form-data:
+ *                                                                skills, achievements, job_id, resume)
+ *   POST   /students/:student_id/video    -> { ok: true }      (student auth, multipart/form-data: video)
+ *   GET    /me/applications                -> Student[]         (student auth — every application this
+ *                                                                account has submitted, across jobs)
+ *   GET    /stats                          -> { openJobs, totalStudents, shortlistedCount, finalInterviewCount }
+ *
+ *   POST   /auth/admin/login               -> { token, admin }         body: { email, password }
+ *   POST   /auth/student/register          -> { token, account }      body: { full_name, email, phone, password }
+ *   POST   /auth/student/login             -> { token, account }      body: { email, password }
+ *   GET    /health                         -> 200 OK if server is up
+ * -------------------------------------------------------------------
+ * NOTE FOR YOUR BACKEND DEV: the original ER diagram's STUDENTS table
+ * is one row per application, not one row per person, and has no
+ * password column. Candidate login needs a separate table — something
+ * like STUDENT_ACCOUNTS (account_id PK, full_name, email UNIQUE, phone,
+ * password_hash) — with each STUDENTS application row linking back to
+ * it (e.g. STUDENTS.account_id -> STUDENT_ACCOUNTS.account_id). Hash
+ * passwords with bcrypt or similar; never store them in plain text.
  * -------------------------------------------------------------------
  */
 
-import { USE_MOCK, apiFetch, setAuthToken } from "./config";
+import { USE_MOCK, apiFetch, setAuthToken, getAuthToken } from "./config";
 
 // ---- In-memory mock data (used only when USE_MOCK=true) ----
 const admins = [
   { admin_id: "ADM-001", full_name: "Priya Nair", email: "priya.nair@company.com",
     role: "Recruiter", department: "Talent Acquisition", phone: "+91 90000 11111",
     account_status: "active" }
+];
+
+// Candidate login accounts — separate from the per-application STUDENTS rows below.
+let studentAccounts = [
+  { account_id: "ACC-9001", full_name: "Ananya Sharma", email: "ananya.sharma@email.com",
+    phone: "+91 90000 22201", password: "demo1234" }
 ];
 
 let jobs = [
@@ -68,32 +87,32 @@ let jobs = [
 ];
 
 let students = [
-  { student_id: "STU-2001", full_name: "Ananya Sharma", email: "ananya.sharma@email.com",
+  { student_id: "STU-2001", account_id: "ACC-9001", full_name: "Ananya Sharma", email: "ananya.sharma@email.com",
     phone: "+91 90000 22201", job_id: "JOB-1001", resume_url: "/resumes/ananya_sharma.pdf",
     skills: "Figma, Design Systems, User Research", achievements: "Led redesign for a 200k-user SaaS product",
     resume_score: 92, application_status: "shortlisted" },
 
-  { student_id: "STU-2002", full_name: "Rohan Verma", email: "rohan.verma@email.com",
+  { student_id: "STU-2002", account_id: null, full_name: "Rohan Verma", email: "rohan.verma@email.com",
     phone: "+91 90000 22202", job_id: "JOB-1001", resume_url: "/resumes/rohan_verma.pdf",
     skills: "Interaction Design, Prototyping, Design Systems", achievements: "2x Awwwards nominee",
     resume_score: 89, application_status: "shortlisted" },
 
-  { student_id: "STU-2003", full_name: "Meera Iyer", email: "meera.iyer@email.com",
+  { student_id: "STU-2003", account_id: null, full_name: "Meera Iyer", email: "meera.iyer@email.com",
     phone: "+91 90000 22203", job_id: "JOB-1001", resume_url: "/resumes/meera_iyer.pdf",
     skills: "UX Research, Usability Testing, Figma", achievements: "Published UX research at CHI workshop",
     resume_score: 87, application_status: "shortlisted" },
 
-  { student_id: "STU-2004", full_name: "Kabir Malhotra", email: "kabir.malhotra@email.com",
+  { student_id: "STU-2004", account_id: null, full_name: "Kabir Malhotra", email: "kabir.malhotra@email.com",
     phone: "+91 90000 22204", job_id: "JOB-1001", resume_url: "/resumes/kabir_malhotra.pdf",
     skills: "Visual Design, Branding, Figma", achievements: "Freelance design lead for 3 seed-stage startups",
     resume_score: 84, application_status: "shortlisted" },
 
-  { student_id: "STU-2005", full_name: "Sara Thomas", email: "sara.thomas@email.com",
+  { student_id: "STU-2005", account_id: null, full_name: "Sara Thomas", email: "sara.thomas@email.com",
     phone: "+91 90000 22205", job_id: "JOB-1001", resume_url: "/resumes/sara_thomas.pdf",
     skills: "Visual Design, Illustration", achievements: "Design intern at a Series B fintech",
     resume_score: 80, application_status: "shortlisted" },
 
-  { student_id: "STU-2006", full_name: "Aditya Rao", email: "aditya.rao@email.com",
+  { student_id: "STU-2006", account_id: null, full_name: "Aditya Rao", email: "aditya.rao@email.com",
     phone: "+91 90000 22206", job_id: "JOB-1001", resume_url: "/resumes/aditya_rao.pdf",
     skills: "Graphic Design", achievements: "", resume_score: 58, application_status: "rejected" }
 ];
@@ -142,7 +161,7 @@ export async function getJob(job_id) {
 
 export async function getRankedStudents(job_id) {
   if (USE_MOCK) { await delay(); return rankStudents(job_id); }
-  return apiFetch(`/jobs/${job_id}/candidates`);
+  return apiFetch(`/jobs/${job_id}/candidates`, {}, "admin");
 }
 
 export async function getStudentDetail(student_id) {
@@ -153,7 +172,7 @@ export async function getStudentDetail(student_id) {
     const sl = shortlistedStudents.find((x) => x.student_id === student_id) || {};
     return { ...s, ...sl };
   }
-  return apiFetch(`/students/${student_id}`);
+  return apiFetch(`/students/${student_id}`, {}, "admin");
 }
 
 export async function getStats() {
@@ -166,7 +185,25 @@ export async function getStats() {
       finalInterviewCount: shortlistedStudents.filter((s) => s.current_stage === "final_interview").length,
     };
   }
-  return apiFetch("/stats");
+  return apiFetch("/stats", {}, "admin");
+}
+
+// Every application submitted by the currently logged-in candidate.
+export async function getMyApplications() {
+  if (USE_MOCK) {
+    await delay();
+    const token = getAuthToken("student");
+    if (!token) return [];
+    const accountId = token.replace("mock-student-token-", "");
+    return students
+      .filter((s) => s.account_id === accountId)
+      .map((s) => {
+        const sl = shortlistedStudents.find((x) => x.student_id === s.student_id) || {};
+        const job = jobs.find((j) => j.job_id === s.job_id);
+        return { ...s, ...sl, job_title: job?.job_title };
+      });
+  }
+  return apiFetch("/me/applications", {}, "student");
 }
 
 // ---- Writes ----
@@ -178,16 +215,20 @@ export async function createJob(jobData) {
     jobs = [...jobs, newJob];
     return newJob;
   }
-  return apiFetch("/jobs", { method: "POST", body: JSON.stringify(jobData) });
+  return apiFetch("/jobs", { method: "POST", body: JSON.stringify(jobData) }, "admin");
 }
 
-// formFields: { full_name, email, phone, skills, achievements, job_id }
+// formFields: { skills, achievements, job_id } — name/email/phone come from the logged-in account
 // resumeFile: File object from <input type="file">
-export async function submitApplication(formFields, resumeFile) {
+export async function submitApplication(formFields, resumeFile, account) {
   if (USE_MOCK) {
     await delay(300);
     const newStudent = {
       student_id: `STU-${2000 + students.length + 1}`,
+      account_id: account?.account_id || null,
+      full_name: account?.full_name,
+      email: account?.email,
+      phone: account?.phone,
       application_status: "under_review",
       resume_score: null,
       resume_url: resumeFile ? `/resumes/${resumeFile.name}` : null,
@@ -199,7 +240,7 @@ export async function submitApplication(formFields, resumeFile) {
   const body = new FormData();
   Object.entries(formFields).forEach(([key, value]) => body.append(key, value));
   if (resumeFile) body.append("resume", resumeFile);
-  return apiFetch("/students", { method: "POST", body });
+  return apiFetch("/students", { method: "POST", body }, "student");
 }
 
 // videoBlob: Blob from MediaRecorder
@@ -210,30 +251,86 @@ export async function uploadEvaluationVideo(student_id, videoBlob) {
   }
   const body = new FormData();
   body.append("video", videoBlob, `${student_id}_intro.webm`);
-  return apiFetch(`/students/${student_id}/video`, { method: "POST", body });
+  return apiFetch(`/students/${student_id}/video`, { method: "POST", body }, "student");
 }
 
-// ---- Auth ----
+// ---- Admin auth ----
 
 export async function adminLogin(email, password) {
   if (USE_MOCK) {
     await delay(200);
     const admin = admins.find((a) => a.email === email);
     if (!admin) throw new Error("No admin account with that email.");
-    const token = "mock-token-" + admin.admin_id;
-    setAuthToken(token);
+    const token = "mock-admin-token-" + admin.admin_id;
+    setAuthToken("admin", token);
     return { token, admin };
   }
-  const result = await apiFetch("/auth/login", {
+  const result = await apiFetch("/auth/admin/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
-  setAuthToken(result.token);
+  setAuthToken("admin", result.token);
   return result;
 }
 
 export function adminLogout() {
-  setAuthToken(null);
+  setAuthToken("admin", null);
+}
+
+// ---- Candidate auth ----
+
+export async function studentRegister({ full_name, email, phone, password }) {
+  if (USE_MOCK) {
+    await delay(250);
+    if (studentAccounts.some((a) => a.email.toLowerCase() === email.toLowerCase())) {
+      throw new Error("An account with this email already exists. Try signing in instead.");
+    }
+    const account = { account_id: `ACC-${9000 + studentAccounts.length + 1}`, full_name, email, phone, password };
+    studentAccounts = [...studentAccounts, account];
+    const token = "mock-student-token-" + account.account_id;
+    setAuthToken("student", token);
+    return { token, account };
+  }
+  const result = await apiFetch("/auth/student/register", {
+    method: "POST",
+    body: JSON.stringify({ full_name, email, phone, password }),
+  });
+  setAuthToken("student", result.token);
+  return result;
+}
+
+export async function studentLogin(email, password) {
+  if (USE_MOCK) {
+    await delay(200);
+    const account = studentAccounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
+    if (!account || account.password !== password) {
+      throw new Error("Incorrect email or password.");
+    }
+    const token = "mock-student-token-" + account.account_id;
+    setAuthToken("student", token);
+    return { token, account };
+  }
+  const result = await apiFetch("/auth/student/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+  setAuthToken("student", result.token);
+  return result;
+}
+
+export function studentLogout() {
+  setAuthToken("student", null);
+}
+
+export function getStoredStudentAccount() {
+  // In mock mode we can look the account up from the token; in live mode
+  // the backend should return the account on login/register and the app
+  // should keep it in memory (see App.jsx) rather than re-deriving it here.
+  if (!USE_MOCK) return null;
+  const token = getAuthToken("student");
+  if (!token) return null;
+  const accountId = token.replace("mock-student-token-", "");
+  return studentAccounts.find((a) => a.account_id === accountId) || null;
 }
 
 export const STAGE_LABEL = {

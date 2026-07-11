@@ -108,7 +108,7 @@ export default function Evaluation({ student }) {
       <StageTracker currentIndex={stageIndex} />
 
       {!videoDone && (
-        <div className="bg-panel border border-line p-10 text-center">
+        <div className="bg-panel border border-line rounded-xl shadow-sm p-10 text-center">
           <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-5">
             Stage 1 · Video introduction
           </span>
@@ -150,7 +150,7 @@ export default function Evaluation({ student }) {
       )}
 
       {videoDone && !quizDone && (
-        <div className="bg-panel border border-line p-10 mt-6 text-left">
+        <div className="bg-panel border border-line rounded-xl shadow-sm p-10 mt-6 text-left">
           <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-5">
             Stage 2 · Aptitude test — 15 questions (2 shown)
           </span>
@@ -175,7 +175,7 @@ export default function Evaluation({ student }) {
       )}
 
       {quizDone && (
-        <div className="bg-panel border border-line p-10 text-center mt-6">
+        <div className="bg-panel border border-line rounded-xl shadow-sm p-10 text-center mt-6">
           <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-5">
             All stages complete
           </span>

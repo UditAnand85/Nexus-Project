@@ -2,17 +2,25 @@
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-export function getAuthToken() {
-  return localStorage.getItem("recruitai_admin_token");
+const TOKEN_KEYS = {
+  admin: "recruitai_admin_token",
+  student: "recruitai_student_token",
+};
+
+export function getAuthToken(role = "admin") {
+  return localStorage.getItem(TOKEN_KEYS[role]);
 }
 
-export function setAuthToken(token) {
-  if (token) localStorage.setItem("recruitai_admin_token", token);
-  else localStorage.removeItem("recruitai_admin_token");
+export function setAuthToken(role, token) {
+  if (token) localStorage.setItem(TOKEN_KEYS[role], token);
+  else localStorage.removeItem(TOKEN_KEYS[role]);
 }
 
-export async function apiFetch(path, options = {}) {
-  const token = getAuthToken();
+// Which token to attach depends on which kind of request this is.
+// Admin routes (jobs CUD, candidate review) send the admin token.
+// Student routes (my applications, submitting one) send the student token.
+export async function apiFetch(path, options = {}, tokenRole = "admin") {
+  const token = getAuthToken(tokenRole);
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
