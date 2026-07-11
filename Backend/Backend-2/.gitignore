@@ -1,0 +1,23 @@
+# Python environment
+venv/
+ENV/
+env/
+.venv/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Secrets
+.env
+
+# Flask Instance folder
+instance/
+
+# Logs
+*.log
+
+# System Files
+.DS_Store
+Thumbs.db

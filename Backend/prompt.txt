@@ -1,0 +1,161 @@
+I am creating a Resume shortlisting project but this is not a normal shortlisting platform it will first shortlist resume after that sends email to top candidates and then we will have multiple rounds with it.
+
+-------------------Authentication------------------------------------
+1. TO make Authentication system of this project what I have plan in website there is one page for the Users where candidates can register and login, another page for the Admin where admin can login, there email will already be in the database so no need for registerations.
+
+For now you only have to create Backend
+Whole workflow of authentication 
+ For USERS  
+ 1. register 
+    if email in database return email already exist
+    if email not exist then store it in the database and send the user to login page.
+ 2. Login 
+    if email not exist return email does not exist
+    if email exist then check the password 
+    if password is not correct then return invalid credentials 
+    if email and passwrod both are correct then create Token and store it in cookies user JWT for authentication 
+Use Bycrypt for hashing and secure cookie handling 
+
+For Admins 
+1. Login 
+    if email not exist return email does not exist
+    if email exist then check the password 
+    if password is not correct then return invalid credentials 
+    if email and passwrod both are correct then create Token and store it in cookies user JWT for authentication 
+Use Bycrypt for hashing and secure cookie handling 
+
+But now things change here 
+we have some job roles like 
+    1. Super Admin
+    2. HR Manager
+    3. Hiring Manager 
+    4. Other Employees 
+
+- The system has an Admin Panel where authorized admins can create, update, delete, and view job postings.
+- All company employees can register and log in to the platform.
+- Employees with the Viewer role have read-only access and cannot manage jobs.
+- Employees with roles such as HR Manager or Hiring Manager can create, update, delete, and view job postings based on their assigned permissions.
+- Each job card contains a "View Results" button to display the shortlisted candidates and their evaluation results.
+- Each job card also contains a "Stop Shortlisting" button. Once clicked, the system closes the resume submission and AI shortlisting process for that job.
+- After shortlisting is closed, the corresponding job on the candidate portal displays the status "Closed", preventing any further applications.
+
+Tech Stack 
+2. Express JS
+3. Supabase Use(Drizzle) add features like push:db and migrate to handle
+4. Node JS
+5. JWT (jsonwebtoken)
+6. JWT (Auth)
+7. Bycrypt (Hashing)
+8. User Morgan for Logging
+
+Now time to explain complex Architecture 
+I have to create to Backend project 
+1. Backned-1 express.js Handles Authentication and database
+2. Backned-2 Python Handles Gemini API Calls and Resume Parsing 
+
+For Now you just have to create Backend-1 But you just have to create structure of Backend-2 
+
+Backend-2 Tech Stack 
+1. Python 
+2. Flask 
+3. LangChain and LangGraph
+4. Gemini API key 
+
+
+For connection between both the Backends User Queue(redis) So that it handles request between both the Backends
+
+
+So, Now the 2 Backends Architecture 
+when the student fill the form it gives(name,email,phonenumber,resume)
+Backend-1 send request to Backend-2
+Backend-2 returns (Name,email,Phonenumber,skills,experience,projects,ATSScore)
+Backend-1 store this in the database 
+
+---------------------------DataBase Schema-----------------------------
+Use Supabase for the Backned 
+1. ROLES
+
+Stores all available roles for company employees.
+
+Column	Type	Description
+role_key (PK)	VARCHAR	Unique role identifier (e.g., R001)
+role_name	VARCHAR	Role name (Super Admin, HR Manager, Hiring Manager, Viewer)
+description	TEXT	Brief description of the role
+is_active	BOOLEAN	Indicates whether the role is active
+2. ADMIN
+
+Stores all company employees who can access the admin portal.
+
+Column	Type	Description
+admin_id (PK)	INT	Unique admin ID
+full_name	VARCHAR	Employee name
+email	VARCHAR	Employee email
+password	VARCHAR	Encrypted password
+role_key (FK)	VARCHAR	References ROLES.role_key
+department	VARCHAR	Department
+phone	VARCHAR	Contact number
+account_status	ENUM	Active / Inactive
+created_at	TIMESTAMP	Account creation time
+updated_at	TIMESTAMP	Last update time
+3. JOBS
+
+Stores all job postings.
+
+Column	Type	Description
+job_id (PK)	INT	Unique job ID
+job_title	VARCHAR	Job title
+job_description	TEXT	Job description
+expected_ctc	VARCHAR	Salary package
+job_location	VARCHAR	Location
+employment_type	VARCHAR	Full-Time / Internship
+openings	INT	Number of openings
+application_start_date	DATE	Start date
+application_end_date	DATE	End date
+job_status	ENUM	Open / Closed / Shortlisting Closed
+resume_cutoff_score	INT	Minimum AI resume score
+evaluation_prompt	TEXT	Prompt used for AI evaluation
+email_template	TEXT	Email template
+created_by (FK)	INT	References ADMIN.admin_id
+created_at	TIMESTAMP	Creation time
+updated_at	TIMESTAMP	Last update
+4. STUDENTS
+
+Stores all candidates who apply for jobs.
+
+Column	Type	Description
+student_id (PK)	INT	Unique student ID
+full_name	VARCHAR	Candidate name
+email	VARCHAR	Candidate email
+phone	VARCHAR	Contact number
+job_id (FK)	INT	Applied job
+resume_url	TEXT	Resume file URL
+parsed_resume_json	JSON	Extracted resume details
+resume_score	DECIMAL	AI resume score
+application_status	ENUM	Applied / Shortlisted / Rejected / Hired
+created_at	TIMESTAMP	Application time
+5. SHORTLISTED_STUDENTS
+
+Stores candidates who passed resume screening.
+
+Column	Type	Description
+shortlisted_id (PK)	INT	Unique ID
+student_id (FK)	INT	References STUDENTS.student_id
+video_url	TEXT	Uploaded introduction video
+video_score	DECIMAL	AI video evaluation score
+aptitude_score	DECIMAL	Aptitude test score
+final_score	DECIMAL	Overall score
+recommendation	ENUM	Hire / Consider / Reject
+current_stage	VARCHAR	Video / Aptitude / Final Review / Completed
+updated_at	TIMESTAMP	Last evaluation update
+Relationships
+ROLES (1) → ADMIN (M)
+ADMIN (1) → JOBS (M)
+JOBS (1) → STUDENTS (M)
+STUDENTS (1) → SHORTLISTED_STUDENTS (0..1)
+    
+
+Now Final Instruction 
+1. Implement only Backend-1 completely.
+2. Backend-2 should only contain the Flask project structure, placeholder routes, request/response schemas, and service interfaces.
+3. Do not implement LangChain, LangGraph, Gemini API, resume parsing, ATS scoring, or any AI logic.
+4. Keep the code modular, production-ready, and scalable using a clean folder structure and best practices.

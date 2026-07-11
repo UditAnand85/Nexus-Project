@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import * as userAuthController from '../controllers/user.auth.controller.js';
+import { authenticateToken } from '../middleware/auth.js';
+
+const router = Router();
+
+/**
+ * User (Candidate) Authentication Routes
+ * Base: /api/v1/auth/user
+ */
+
+// POST /api/v1/auth/user/register
+router.post('/register', userAuthController.register);
+
+// POST /api/v1/auth/user/login
+router.post('/login', userAuthController.login);
+
+// POST /api/v1/auth/user/logout
+router.post('/logout', authenticateToken, userAuthController.logout);
+
+// GET /api/v1/auth/user/me  — Returns currently logged-in user's profile
+router.get('/me', authenticateToken, userAuthController.getMe);
+
+export default router;

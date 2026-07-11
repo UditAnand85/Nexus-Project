@@ -1,0 +1,36 @@
+# HireFlowAI Backend-2 Dependencies
+# =====================================
+# Install with: pip install -r requirements.txt
+#
+# NOTE: AI logic (LangChain, LangGraph, Gemini) is listed here for completeness.
+#       Function implementations are currently empty placeholders.
+
+# ─── Web Framework ───────────────────────────────────────────────────────────
+Flask==3.0.3
+flask-cors==4.0.0
+
+# ─── Environment ─────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ─── Data Validation & Serialization ─────────────────────────────────────────
+marshmallow==3.21.3
+pydantic==2.7.4
+
+# ─── Redis / Queue ────────────────────────────────────────────────────────────
+redis==5.0.7
+
+# ─── AI / LangChain (to be implemented) ──────────────────────────────────────
+langchain==0.2.6
+langchain-google-genai==1.0.7
+langgraph==0.1.14
+google-generativeai==0.7.2
+
+# ─── Resume Parsing (to be implemented) ──────────────────────────────────────
+PyPDF2==3.0.1
+python-docx==1.1.2
+
+# ─── HTTP Client (for Backend-1 callback) ────────────────────────────────────
+requests==2.32.3
+
+# ─── Production WSGI Server ──────────────────────────────────────────────────
+gunicorn==22.0.0
