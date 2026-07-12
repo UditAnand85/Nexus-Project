@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+# pyrefly: ignore [missing-import]
 from marshmallow import ValidationError
 
 from app.schemas.request_schema import ResumeParseRequestSchema
@@ -73,28 +74,29 @@ def parse_resume():
                 "message": "Invalid file type. Only PDF, DOC, and DOCX are accepted.",
             }), 400
 
-        # ── Call service stubs (bodies are empty — to be implemented) ──────────
-        # parsed_data = resume_parser.parse_resume(
-        #     resume_file=resume_file,
-        #     evaluation_prompt=validated_data["evaluation_prompt"]
-        # )
-        # ats_result = ats_scorer.calculate_ats_score(
-        #     parsed_resume=parsed_data,
-        #     evaluation_prompt=validated_data["evaluation_prompt"],
-        #     cutoff_score=validated_data["resume_cutoff_score"]
-        # )
+        # ── Run the LangGraph Agent ──────────
+        from app.services.agent import process_resume_with_agent
+        
+        file_bytes = resume_file.read()
+        filename = resume_file.filename
+        
+        final_state = process_resume_with_agent(
+            name=validated_data["name"],
+            email=validated_data["email"],
+            phone=validated_data.get("phone", ""),
+            file_bytes=file_bytes,
+            filename=filename
+        )
+        
+        if final_state.get("error"):
+            return jsonify({"success": False, "message": final_state["error"]}), 500
 
-        # ── Placeholder response (replace when AI logic is ready) ─────────────
         result = {
-            "name": validated_data["name"],
-            "email": validated_data["email"],
-            "phone": validated_data.get("phone"),
-            "skills": [],       # To be populated by resume_parser
-            "experience": [],   # To be populated by resume_parser
-            "projects": [],     # To be populated by resume_parser
-            "ats_score": 0.0,   # To be populated by ats_scorer
-            "is_shortlisted": False,
-            "feedback": "AI processing not yet implemented.",
+            "name": final_state.get("name"),
+            "email": final_state.get("email"),
+            "phone": final_state.get("phone"),
+            "parsed_resume_json": final_state.get("parsed_resume_json"),
+            "resume_score": final_state.get("resume_score", 0.0)
         }
 
         return jsonify({"success": True, "data": result}), 200

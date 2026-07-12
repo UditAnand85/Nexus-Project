@@ -20,7 +20,7 @@ export const getAllShortlisted = async (req, res, next) => {
 export const getShortlistedByJob = async (req, res, next) => {
   try {
     const shortlisted = await shortlistedService.getShortlistedByJob(
-      parseInt(req.params.jobId, 10)
+      req.params.jobId
     );
     res.status(200).json({ success: true, count: shortlisted.length, data: shortlisted });
   } catch (error) {
@@ -35,7 +35,7 @@ export const getShortlistedByJob = async (req, res, next) => {
 export const getShortlistedById = async (req, res, next) => {
   try {
     const shortlisted = await shortlistedService.getShortlistedById(
-      parseInt(req.params.id, 10)
+      req.params.id
     );
     res.status(200).json({ success: true, data: shortlisted });
   } catch (error) {

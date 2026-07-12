@@ -159,3 +159,32 @@ Now Final Instruction
 2. Backend-2 should only contain the Flask project structure, placeholder routes, request/response schemas, and service interfaces.
 3. Do not implement LangChain, LangGraph, Gemini API, resume parsing, ATS scoring, or any AI logic.
 4. Keep the code modular, production-ready, and scalable using a clean folder structure and best practices.
+
+
+---------------------------Backend-2-------------------------------------
+
+Now as both the Backends are working fine let's move on our second backend in which we will be using Python Flask and Langchain and LangGraph to process 
+
+1. For now you only have to create one endpoint for resume parsing 
+
+2. You will get input of Name, email, Phone number and resume and your work is to give back Name email Phonenumber parsed_resume_json resume_score
+
+3. Paresed_resume_json is a text type where we you have to store a short summary in points which tells strongs ponits about the candidate that why we should hire him some thing like this generate it by using Gemini
+
+4. Resume_score:- is the ATS score that you will find out by using Gemini it will be between 0 to 100.
+By default criteria is 
+Skills Match – 30 Marks
+Projects – 20 Marks
+Experience – 15 Marks
+Education – 10 Marks
+Certifications – 10 Marks
+Resume Quality & ATS Compatibility – 10 Marks
+Achievements & Extracurricular Activities – 5 Marks
+
+5. You have to create an AI agent using Langgraph (Try not to use LangChain) 
+Langrpah should like this 
+ Start --> Parse Resume -->make some summary or strong points about resume(store in database) --> Check Scores and Strong Points --> Give output  (store in database)
+
+after all this return all things to Backend-1
+and then Backend-1 will store it in database students table
+then show in frontend (THank you for applying already created that page before)

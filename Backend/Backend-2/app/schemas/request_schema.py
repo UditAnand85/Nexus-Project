@@ -49,9 +49,8 @@ class ResumeParseRequestSchema(Schema):
         metadata={"description": "Candidate phone number"},
     )
 
-    job_id = fields.Int(
+    job_id = fields.Str(
         required=True,
-        validate=validate.Range(min=1),
         metadata={"description": "ID of the job posting (from Backend-1 JOBS table)"},
     )
 
@@ -87,12 +86,12 @@ class QueueJobSchema(Schema):
         resumeCutoffScore   : Minimum score to shortlist
     """
 
-    studentId = fields.Int(
+    studentId = fields.Str(
         required=True,
         metadata={"description": "Student's primary key in Backend-1's students table"},
     )
 
-    jobId = fields.Int(
+    jobId = fields.Str(
         required=True,
         metadata={"description": "Job posting primary key"},
     )

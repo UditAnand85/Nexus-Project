@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { formatDate } from "../utils/format";
 import { Loading, ErrorState } from "../components/Status";
 
 export default function JobDetail({ job, loading, error, onBack, onApply, onRetry, requiresLogin }) {
+  const [showResultsInfo, setShowResultsInfo] = useState(false);
+
   if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
   if (error) return <div className="max-w-[1080px] mx-auto px-8 py-12"><ErrorState message={error} onRetry={onRetry} /></div>;
   if (!job) return null;
 
+  const isClosed = job.job_status !== "Open" || new Date(job.application_end_date) < new Date();
   const tags = [job.employment_type, job.job_location, `${job.openings} opening${job.openings > 1 ? "s" : ""}`];
 
   return (
@@ -40,13 +44,31 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
         </ul>
       </div>
 
-      <div className="mt-10 flex gap-3.5 items-center">
-        <button onClick={onApply} className="btn-primary">Apply now</button>
-        <button onClick={onBack} className="btn-ghost">Back to roles</button>
-        {requiresLogin && (
-          <span className="text-inksoft text-xs font-mono">Sign in required to apply</span>
+      <div className="mt-10 flex flex-col items-start">
+        <div className="flex gap-3.5 items-center">
+          {!isClosed ? (
+            <button onClick={onApply} className="btn-primary">Apply now</button>
+          ) : (
+            <button 
+              onClick={() => setShowResultsInfo(!showResultsInfo)} 
+              className="btn-primary" 
+              style={{ backgroundColor: '#1A1D2B', borderColor: '#1A1D2B' }}
+            >
+              View Results
+            </button>
+          )}
+          <button onClick={onBack} className="btn-ghost">Back to roles</button>
+          {!isClosed && requiresLogin && (
+            <span className="text-inksoft text-xs font-mono">Sign in required to apply</span>
+          )}
+        </div>
+        {showResultsInfo && isClosed && (
+          <div className="mt-4 px-4 py-3 bg-[#EEEFEC] border border-line rounded-lg text-sm text-ink font-medium">
+            Results will be shared on your registered Email!
+          </div>
         )}
       </div>
+      
     </div>
   );
 }

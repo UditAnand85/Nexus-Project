@@ -2,7 +2,6 @@ import { eq, desc, and } from 'drizzle-orm';
 import { db } from '../config/db.js';
 import { students, jobs, shortlistedStudents } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { addResumeJob } from '../queues/resumeQueue.js';
 
 // ─── Submit Application ───────────────────────────────────────────────────────
 
@@ -52,7 +51,42 @@ export const submitApplication = async ({
     throw new AppError('You have already submitted an application for this job.', 409);
   }
 
-  // 4. Create student record
+  // 4. Call Backend-2 for AI Parsing synchronously
+  let parsed_resume_json = null;
+  let resume_score = 0;
+
+  try {
+    const formData = new FormData();
+    formData.append('name', full_name);
+    formData.append('email', email);
+    if (phone) formData.append('phone', phone);
+    formData.append('job_id', jobId.toString());
+    formData.append('evaluation_prompt', job.evaluation_prompt || '');
+    formData.append('resume_cutoff_score', (job.resume_cutoff_score || 0).toString());
+    
+    const resumeBlob = new Blob([resumeBuffer], { type: resumeMimeType });
+    formData.append('resume', resumeBlob, resumeOriginalName);
+
+    const backend2Url = process.env.BACKEND2_URL || 'http://127.0.0.1:5001';
+    console.log(`[Service] Sending resume to Backend-2 at ${backend2Url}/api/v1/resume/parse`);
+    
+    const response = await fetch(`${backend2Url}/api/v1/resume/parse`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (data.success && data.data) {
+      parsed_resume_json = data.data.parsed_resume_json;
+      resume_score = data.data.resume_score;
+    } else {
+      console.error('[Service] Backend-2 error:', data.message);
+    }
+  } catch (error) {
+    console.error('[Service] Failed to parse resume in Backend-2:', error);
+  }
+
+  // 5. Create student record with parsed AI data
   const [newStudent] = await db
     .insert(students)
     .values({
@@ -60,30 +94,20 @@ export const submitApplication = async ({
       email,
       phone: phone || null,
       job_id: jobId,
-      resume_url: null, // Resume is NOT stored; forwarded to Backend-2
+
+      parsed_resume_json: parsed_resume_json,
+      resume_score: resume_score,
       application_status: 'Applied',
     })
     .returning();
-
-  // 5. Push to BullMQ queue (fire-and-forget)
-  await addResumeJob({
-    studentId: newStudent.student_id,
-    jobId,
-    fullName: full_name,
-    email,
-    phone: phone || null,
-    resumeBase64: resumeBuffer.toString('base64'),
-    resumeMimeType,
-    resumeOriginalName,
-    evaluationPrompt: job.evaluation_prompt || '',
-    resumeCutoffScore: job.resume_cutoff_score || 0,
-  });
 
   return {
     student_id: newStudent.student_id,
     full_name: newStudent.full_name,
     email: newStudent.email,
     job_id: newStudent.job_id,
+    resume_score: newStudent.resume_score,
+    parsed_resume_json: newStudent.parsed_resume_json,
     application_status: newStudent.application_status,
     created_at: newStudent.created_at,
   };
@@ -111,7 +135,7 @@ export const getStudentById = async (studentId) => {
       email: students.email,
       phone: students.phone,
       job_id: students.job_id,
-      resume_url: students.resume_url,
+
       resume_score: students.resume_score,
       application_status: students.application_status,
       created_at: students.created_at,

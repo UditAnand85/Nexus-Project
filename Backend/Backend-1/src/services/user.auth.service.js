@@ -122,7 +122,7 @@ export const getMyApplications = async (email) => {
       email: students.email,
       full_name: students.full_name,
       phone: students.phone,
-      resume_url: students.resume_url,
+
       resume_score: students.resume_score,
       application_status: students.application_status,
       created_at: students.created_at,

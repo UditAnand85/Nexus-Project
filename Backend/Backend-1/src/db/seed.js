@@ -83,6 +83,47 @@ const seedSuperAdmin = async () => {
   console.log(`⚠️   Please change the password after first login!`);
 };
 
+const seedEmployees = async () => {
+  console.log('👥  Seeding Admin Employees...');
+  const password = env.SEED_ADMIN_PASSWORD;
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const employees = [
+    {
+      full_name: 'Jane HR',
+      email: 'jane.hr@hireflowai.com',
+      password: hashedPassword,
+      role_key: 'R002', // HR Manager
+      department: 'Human Resources',
+      phone: '555-0201',
+      account_status: 'Active',
+    },
+    {
+      full_name: 'Mark Hiring',
+      email: 'mark.hiring@hireflowai.com',
+      password: hashedPassword,
+      role_key: 'R003', // Hiring Manager
+      department: 'Engineering',
+      phone: '555-0202',
+      account_status: 'Active',
+    },
+    {
+      full_name: 'Udit Anand',
+      email: 'uditanand0@gmail.com',
+      password: hashedPassword,
+      role_key: 'R001', // Super Admin
+      department: 'Administration',
+      phone: null,
+      account_status: 'Active',
+    }
+  ];
+
+  for (const emp of employees) {
+    await db.insert(admin).values(emp).onConflictDoNothing();
+    console.log(`✅  Admin Employee seeded: ${emp.email} (Role: ${emp.role_key})`);
+  }
+};
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const main = async () => {
@@ -90,6 +131,7 @@ const main = async () => {
     console.log('\n🌱  Starting database seed...\n');
     await seedRoles();
     await seedSuperAdmin();
+    await seedEmployees();
     console.log('\n🎉  Database seeded successfully!\n');
     process.exit(0);
   } catch (error) {

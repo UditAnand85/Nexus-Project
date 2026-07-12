@@ -1,6 +1,6 @@
 import { eq, desc, sql } from 'drizzle-orm';
 import { db } from '../config/db.js';
-import { jobs, students, shortlistedStudents } from '../db/schema/index.js';
+import { jobs, students, shortlistedStudents, admin } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
@@ -22,13 +22,15 @@ export const getAllJobs = async () => {
       evaluation_prompt: jobs.evaluation_prompt,
       email_template: jobs.email_template,
       created_by: jobs.created_by,
+      created_by_name: admin.full_name,
       created_at: jobs.created_at,
       updated_at: jobs.updated_at,
       applicants_count: sql`count(${students.student_id})::int`,
     })
     .from(jobs)
     .leftJoin(students, eq(jobs.job_id, students.job_id))
-    .groupBy(jobs.job_id)
+    .leftJoin(admin, eq(jobs.created_by, admin.admin_id))
+    .groupBy(jobs.job_id, admin.full_name)
     .orderBy(desc(jobs.created_at));
 };
 
@@ -51,14 +53,16 @@ export const getJobById = async (jobId) => {
       evaluation_prompt: jobs.evaluation_prompt,
       email_template: jobs.email_template,
       created_by: jobs.created_by,
+      created_by_name: admin.full_name,
       created_at: jobs.created_at,
       updated_at: jobs.updated_at,
       applicants_count: sql`count(${students.student_id})::int`,
     })
     .from(jobs)
     .leftJoin(students, eq(jobs.job_id, students.job_id))
+    .leftJoin(admin, eq(jobs.created_by, admin.admin_id))
     .where(eq(jobs.job_id, jobId))
-    .groupBy(jobs.job_id)
+    .groupBy(jobs.job_id, admin.full_name)
     .limit(1);
 
   if (result.length === 0) {
@@ -168,7 +172,7 @@ export const getRankedStudents = async (jobId) => {
       email: students.email,
       phone: students.phone,
       job_id: students.job_id,
-      resume_url: students.resume_url,
+
       resume_score: students.resume_score,
       application_status: students.application_status,
       created_at: students.created_at,

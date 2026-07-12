@@ -8,6 +8,7 @@ import {
   pgEnum,
   json,
   integer,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { jobs } from './jobs.js';
 
@@ -34,12 +35,11 @@ export const applicationStatusEnum = pgEnum('application_status', [
  *   resume_url is kept in the schema for compliance but will remain null.
  */
 export const students = pgTable('students', {
-  student_id: serial('student_id').primaryKey(),
+  student_id: uuid('student_id').defaultRandom().primaryKey(),
   full_name: varchar('full_name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 20 }),
-  job_id: integer('job_id').notNull().references(() => jobs.job_id),
-  resume_url: text('resume_url'),               // Nullable — resume is not persisted
+  job_id: uuid('job_id').notNull().references(() => jobs.job_id),
   parsed_resume_json: json('parsed_resume_json'), // Populated by Backend-2 result
   resume_score: decimal('resume_score', { precision: 5, scale: 2 }), // ATS score (0–100)
   application_status: applicationStatusEnum('application_status')

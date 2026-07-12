@@ -7,6 +7,7 @@ import {
   timestamp,
   pgEnum,
   varchar,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { students } from './students.js';
 
@@ -29,8 +30,8 @@ export const recommendationEnum = pgEnum('recommendation', [
  * A student has at most one shortlisted record.
  */
 export const shortlistedStudents = pgTable('shortlisted_students', {
-  shortlisted_id: serial('shortlisted_id').primaryKey(),
-  student_id: integer('student_id')
+  shortlisted_id: uuid('shortlisted_id').defaultRandom().primaryKey(),
+  student_id: uuid('student_id')
     .notNull()
     .references(() => students.student_id)
     .unique(), // One shortlisted record per student

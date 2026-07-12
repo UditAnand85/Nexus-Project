@@ -9,13 +9,13 @@ import { AppError } from '../middleware/errorHandler.js';
 export const submitApplication = async (req, res, next) => {
   try {
     const { full_name, email, phone } = req.body;
-    const jobId = parseInt(req.params.jobId, 10);
+    const jobId = req.params.jobId;
 
     if (!full_name || !email) {
       return next(new AppError('Full name and email are required.', 400));
     }
 
-    if (isNaN(jobId)) {
+    if (!jobId) {
       return next(new AppError('Invalid job ID.', 400));
     }
 
@@ -62,7 +62,7 @@ export const getAllStudents = async (req, res, next) => {
  */
 export const getStudentsByJob = async (req, res, next) => {
   try {
-    const students = await studentsService.getStudentsByJob(parseInt(req.params.jobId, 10));
+    const students = await studentsService.getStudentsByJob(req.params.jobId);
     res.status(200).json({ success: true, count: students.length, data: students });
   } catch (error) {
     next(error);
@@ -75,7 +75,7 @@ export const getStudentsByJob = async (req, res, next) => {
  */
 export const getStudentById = async (req, res, next) => {
   try {
-    const student = await studentsService.getStudentById(parseInt(req.params.id, 10));
+    const student = await studentsService.getStudentById(req.params.id);
     res.status(200).json({ success: true, data: student });
   } catch (error) {
     next(error);

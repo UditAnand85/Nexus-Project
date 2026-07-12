@@ -7,6 +7,7 @@ import {
   date,
   timestamp,
   pgEnum,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { admin } from './admin.js';
 
@@ -29,7 +30,7 @@ export const jobStatusEnum = pgEnum('job_status', [
  * Each job can have a custom AI evaluation prompt and cutoff score.
  */
 export const jobs = pgTable('jobs', {
-  job_id: serial('job_id').primaryKey(),
+  job_id: uuid('job_id').defaultRandom().primaryKey(),
   job_title: varchar('job_title', { length: 255 }).notNull(),
   job_description: text('job_description').notNull(),
   expected_ctc: varchar('expected_ctc', { length: 100 }),
@@ -42,7 +43,7 @@ export const jobs = pgTable('jobs', {
   resume_cutoff_score: integer('resume_cutoff_score').default(0), // 0–100
   evaluation_prompt: text('evaluation_prompt'),  // Prompt used by Backend-2 AI
   email_template: text('email_template'),        // Template for shortlisting emails
-  created_by: integer('created_by').references(() => admin.admin_id),
+  created_by: uuid('created_by').references(() => admin.admin_id),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at')
     .defaultNow()

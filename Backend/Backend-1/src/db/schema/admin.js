@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, pgEnum, boolean, uuid } from 'drizzle-orm/pg-core';
 import { roles } from './roles.js';
 
 /**
@@ -14,7 +14,7 @@ export const accountStatusEnum = pgEnum('account_status', ['Active', 'Inactive']
  * Roles determine their level of access (CRUD vs read-only).
  */
 export const admin = pgTable('admin', {
-  admin_id: serial('admin_id').primaryKey(),
+  admin_id: uuid('admin_id').defaultRandom().primaryKey(),
   full_name: varchar('full_name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(), // bcrypt hashed
