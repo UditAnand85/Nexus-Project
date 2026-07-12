@@ -2,7 +2,7 @@ import { useState } from "react";
 import { formatDate } from "../utils/format";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function JobDetail({ job, loading, error, onBack, onApply, onRetry, requiresLogin }) {
+export default function JobDetail({ job, loading, error, onBack, onApply, onRetry, requiresLogin, isAdminAuthed }) {
   const [showResultsInfo, setShowResultsInfo] = useState(false);
 
   if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
@@ -47,7 +47,11 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
       <div className="mt-10 flex flex-col items-start">
         <div className="flex gap-3.5 items-center">
           {!isClosed ? (
-            <button onClick={onApply} className="btn-primary">Apply now</button>
+            isAdminAuthed ? (
+              <span className="text-inksoft text-sm font-mono border border-line px-3 py-1.5 rounded bg-panel">Admins cannot apply to jobs</span>
+            ) : (
+              <button onClick={onApply} className="btn-primary">Apply now</button>
+            )
           ) : (
             <button 
               onClick={() => setShowResultsInfo(!showResultsInfo)} 
@@ -58,7 +62,7 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
             </button>
           )}
           <button onClick={onBack} className="btn-ghost">Back to roles</button>
-          {!isClosed && requiresLogin && (
+          {!isClosed && !isAdminAuthed && requiresLogin && (
             <span className="text-inksoft text-xs font-mono">Sign in required to apply</span>
           )}
         </div>

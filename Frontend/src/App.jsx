@@ -139,6 +139,7 @@ export default function App() {
           onBack={() => navigate("portal")}
           onApply={startApply}
           requiresLogin={!isStudentAuthed}
+          isAdminAuthed={isAdminAuthed}
         />
       )}
 

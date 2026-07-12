@@ -1,4 +1,4 @@
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
 import { db } from '../config/db.js';
 import { jobs, students, shortlistedStudents, admin } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -136,7 +136,29 @@ export const updateJob = async (jobId, data) => {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 export const deleteJob = async (jobId) => {
-  await getJobById(jobId); // Throws 404 if not found
+  const job = await getJobById(jobId); // Throws 404 if not found
+  
+  if (job.job_status === 'Open') {
+    throw new AppError('Cannot delete a job that is still open. Please close shortlisting first.', 400);
+  }
+
+  // 1. Find all students for this job
+  const jobStudents = await db
+    .select({ id: students.student_id })
+    .from(students)
+    .where(eq(students.job_id, jobId));
+    
+  const studentIds = jobStudents.map(s => s.id);
+
+  // 2. Delete from shortlisted_students if any exist
+  if (studentIds.length > 0) {
+    await db.delete(shortlistedStudents).where(inArray(shortlistedStudents.student_id, studentIds));
+    
+    // 3. Delete from students
+    await db.delete(students).where(eq(students.job_id, jobId));
+  }
+
+  // 4. Finally delete the job
   await db.delete(jobs).where(eq(jobs.job_id, jobId));
 };
 

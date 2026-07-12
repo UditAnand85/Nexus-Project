@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getJobs, getRankedStudents, getStats, getJob, stopShortlisting } from "../api/apiClient";
+import { getJobs, getRankedStudents, getStats, getJob, stopShortlisting, deleteJob } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
 import JobRow from "../components/JobRow";
 import CandidateRow from "../components/CandidateRow";
@@ -32,6 +32,15 @@ export default function AdminDashboard({ admin, onNewJob, onOpenCandidate, onLog
   const handleStopShortlisting = async (jobId) => {
     try { await stopShortlisting(jobId); refetchJobs(); }
     catch (err) { alert(err.message || "Could not close shortlisting"); }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this job? This will also remove all associated candidates and their evaluations.")) return;
+    try { 
+      await deleteJob(jobId); 
+      refetchJobs(); 
+    }
+    catch (err) { alert(err.message || "Could not delete job"); }
   };
 
   const visibleTabs = TABS.filter((t) => t.key !== "team" || isSuperAdmin);
@@ -92,6 +101,7 @@ export default function AdminDashboard({ admin, onNewJob, onOpenCandidate, onLog
                   adminMeta
                   admin={admin}
                   onStopShortlisting={handleStopShortlisting}
+                  onDeleteJob={handleDeleteJob}
                 />
               ))}
               {jobs.length === 0 && (
