@@ -63,6 +63,8 @@ export const submitApplication = async ({
     formData.append('job_id', jobId.toString());
     formData.append('evaluation_prompt', job.evaluation_prompt || '');
     formData.append('resume_cutoff_score', (job.resume_cutoff_score || 0).toString());
+    formData.append('job_title', job.job_title || '');
+    formData.append('job_description', job.job_description || '');
     
     const resumeBlob = new Blob([resumeBuffer], { type: resumeMimeType });
     formData.append('resume', resumeBlob, resumeOriginalName);
@@ -137,6 +139,7 @@ export const getStudentById = async (studentId) => {
       job_id: students.job_id,
 
       resume_score: students.resume_score,
+      parsed_resume_json: students.parsed_resume_json,
       application_status: students.application_status,
       created_at: students.created_at,
       shortlisted_id: shortlistedStudents.shortlisted_id,

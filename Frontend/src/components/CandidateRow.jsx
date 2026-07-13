@@ -23,22 +23,22 @@ function StagePill({ stage }) {
   );
 }
 
-export default function CandidateRow({ student, onClick }) {
+export default function CandidateRow({ student, onClick, isEvaluated }) {
+  const stage = isEvaluated ? "Pending evaluation" : "Applied";
+
   return (
     <div
       onClick={onClick}
-      className="grid grid-cols-[34px_1.4fr_repeat(4,90px)_110px] gap-3.5 items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm"
+      className={`grid ${isEvaluated ? 'grid-cols-[34px_1.4fr_90px_90px_110px]' : 'grid-cols-[34px_1.4fr_90px_110px]'} gap-3.5 items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm`}
     >
       <span className="font-mono text-inksoft">{student.rank}</span>
       <div>
         <div className="font-serif text-base font-medium">{student.full_name}</div>
-        <div className="text-xs text-inksoft mt-0.5">{student.student_id} · {student.skills}</div>
+        <div className="text-xs text-inksoft mt-0.5">{student.student_id}</div>
       </div>
       <ScoreCell value={student.resume_score} />
-      <ScoreCell value={student.video_score} />
-      <ScoreCell value={student.aptitude_score} />
-      <ScoreCell value={student.final_score} />
-      <StagePill stage={student.current_stage} />
+      {isEvaluated && <ScoreCell value={student.final_score} />}
+      <StagePill stage={stage} />
     </div>
   );
 }

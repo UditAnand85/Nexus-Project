@@ -65,6 +65,16 @@ class ResumeParseRequestSchema(Schema):
         metadata={"description": "Minimum ATS score required for shortlisting (0–100)"},
     )
 
+    job_title = fields.Str(
+        load_default="",
+        metadata={"description": "Job posting title"},
+    )
+
+    job_description = fields.Str(
+        load_default="",
+        metadata={"description": "Job posting description"},
+    )
+
 
 class QueueJobSchema(Schema):
     """
@@ -136,4 +146,14 @@ class QueueJobSchema(Schema):
         load_default=0,
         validate=validate.Range(min=0, max=100),
         metadata={"description": "Minimum ATS score to shortlist (0–100)"},
+    )
+
+    jobTitle = fields.Str(
+        load_default="",
+        metadata={"description": "Job posting title"},
+    )
+
+    jobDescription = fields.Str(
+        load_default="",
+        metadata={"description": "Job posting description"},
     )

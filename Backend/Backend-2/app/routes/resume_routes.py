@@ -54,6 +54,8 @@ def parse_resume():
             "job_id": request.form.get("job_id"),
             "evaluation_prompt": request.form.get("evaluation_prompt", ""),
             "resume_cutoff_score": request.form.get("resume_cutoff_score", 0),
+            "job_title": request.form.get("job_title", ""),
+            "job_description": request.form.get("job_description", ""),
         }
 
         validated_data = _request_schema.load(form_data)
@@ -85,7 +87,10 @@ def parse_resume():
             email=validated_data["email"],
             phone=validated_data.get("phone", ""),
             file_bytes=file_bytes,
-            filename=filename
+            filename=filename,
+            job_title=validated_data.get("job_title", ""),
+            job_description=validated_data.get("job_description", ""),
+            evaluation_prompt=validated_data.get("evaluation_prompt", "")
         )
         
         if final_state.get("error"):

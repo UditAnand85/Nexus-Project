@@ -1,7 +1,6 @@
 import { getMyApplications, STAGE_LABEL } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
 import { Loading, ErrorState } from "../components/Status";
-import { scoreOrDash } from "../utils/format";
 
 export default function MyApplications({ account, onBrowseJobs, onLogout }) {
   const { data: applications, loading, error, refetch } = useApi(() => getMyApplications(), []);
@@ -38,17 +37,16 @@ export default function MyApplications({ account, onBrowseJobs, onLogout }) {
               review: "bg-[#EEF0EE] text-inksoft",
             };
             return (
-              <div key={app.student_id} className="grid grid-cols-[1fr_repeat(3,80px)_140px] gap-4 items-center py-5 border-b border-line">
+              <div key={app.student_id} className="grid grid-cols-[1fr_140px] gap-4 items-center py-5 border-b border-line">
                 <div>
                   <div className="font-serif text-lg font-medium">{app.job_title}</div>
                   <div className="text-xs text-inksoft mt-0.5">{app.student_id}</div>
                 </div>
-                <ScoreCell label="resume" value={app.resume_score} />
-                <ScoreCell label="video" value={app.video_score} />
-                <ScoreCell label="final" value={app.final_score} />
-                <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${pillStyles[info.cls]}`}>
-                  {info.label}
-                </span>
+                <div className="flex justify-end">
+                  <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${pillStyles[info.cls]}`}>
+                    {info.label}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -58,11 +56,3 @@ export default function MyApplications({ account, onBrowseJobs, onLogout }) {
   );
 }
 
-function ScoreCell({ label, value }) {
-  return (
-    <div className="text-center">
-      <div className="font-mono text-sm">{scoreOrDash(value)}</div>
-      <div className="text-[10px] text-inksoft mt-0.5">{label}</div>
-    </div>
-  );
-}

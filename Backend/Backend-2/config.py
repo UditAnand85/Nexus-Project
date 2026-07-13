@@ -13,6 +13,7 @@ class Config:
 
     # Google Gemini API (to be used when AI logic is implemented)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
     # Redis — shares the same Redis instance as Backend-1 (BullMQ queue)
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")

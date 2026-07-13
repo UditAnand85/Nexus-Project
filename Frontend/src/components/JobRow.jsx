@@ -3,6 +3,16 @@ import { formatDate } from "../utils/format";
 export default function JobRow({ job, onClick, adminMeta = false, admin = null, onStopShortlisting = null, onDeleteJob = null }) {
   const isClosed = job.job_status !== "Open" || new Date(job.application_end_date) < new Date();
 
+  let statusLabel = "Open";
+  let statusCls = "bg-gosoft text-go";
+  if (job.job_status === "Evaluation Started") {
+    statusLabel = "Evaluation Started";
+    statusCls = "bg-holdsoft text-hold";
+  } else if (isClosed) {
+    statusLabel = "Shortlisting Closed";
+    statusCls = "bg-[#EEEFEC] text-inksoft";
+  }
+
   return (
     <div
       onClick={onClick}
@@ -18,8 +28,8 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
             : `${job.employment_type} · ${job.job_location} · ${job.expected_ctc} · ${job.openings} opening${job.openings > 1 ? "s" : ""} · ${job.applicants_count || 0} applicant${job.applicants_count !== 1 ? "s" : ""}`}
         </div>
       </div>
-      <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full whitespace-nowrap ${isClosed ? 'bg-[#EEEFEC] text-inksoft' : 'bg-gosoft text-go'}`}>
-        {isClosed ? "Shortlisting Closed" : "Open"}
+      <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full whitespace-nowrap ${statusCls}`}>
+        {statusLabel}
       </span>
       {adminMeta && job.job_status === "Open" && admin?.role_key !== "R004" && onStopShortlisting && (
         <button
@@ -44,7 +54,11 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
         </button>
       )}
       <span className="font-mono text-[13px] text-inksoft">Closes {formatDate(job.application_end_date)}</span>
-      <span className="text-inksoft text-lg">→</span>
+      {onClick ? (
+        <span className="text-inksoft text-lg">→</span>
+      ) : (
+        <span className="text-transparent text-lg">→</span>
+      )}
     </div>
   );
 }

@@ -92,6 +92,23 @@ export const stopShortlisting = async (req, res, next) => {
 };
 
 /**
+ * PATCH /api/v1/jobs/:id/start-evaluation
+ * Start evaluation for this job. Sets status to "Evaluation Started".
+ */
+export const startEvaluation = async (req, res, next) => {
+  try {
+    const job = await jobsService.startEvaluation(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: 'Evaluation started successfully.',
+      data: job,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/jobs/:id/candidates
  * Retrieve all candidates for a job, ranked by score.
  */

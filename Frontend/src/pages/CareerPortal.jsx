@@ -25,14 +25,29 @@ export default function CareerPortal({ onOpenJob }) {
       {error && <ErrorState message={error} onRetry={refetch} />}
 
       {jobs && (
-        <div className="flex flex-col border-t border-line">
-          {jobs.map((job) => (
-            <JobRow key={job.job_id} job={job} onClick={() => onOpenJob(job.job_id)} />
-          ))}
-          {jobs.length === 0 && (
-            <p className="text-inksoft text-sm py-10 text-center">No open roles right now — check back soon.</p>
+        <>
+          <div className="flex flex-col border-t border-line">
+            {jobs.filter(j => j.job_status === "Open" && new Date(j.application_end_date) >= new Date()).map((job) => (
+              <JobRow key={job.job_id} job={job} onClick={() => onOpenJob(job.job_id)} />
+            ))}
+            {jobs.filter(j => j.job_status === "Open" && new Date(j.application_end_date) >= new Date()).length === 0 && (
+              <p className="text-inksoft text-sm py-10 text-center">No open roles right now — check back soon.</p>
+            )}
+          </div>
+
+          {jobs.some(j => j.job_status !== "Open" || new Date(j.application_end_date) < new Date()) && (
+            <div className="mt-16">
+              <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">
+                Evaluation in progress
+              </span>
+              <div className="flex flex-col border-t border-line">
+                {jobs.filter(j => j.job_status !== "Open" || new Date(j.application_end_date) < new Date()).map((job) => (
+                  <JobRow key={job.job_id} job={job} />
+                ))}
+              </div>
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

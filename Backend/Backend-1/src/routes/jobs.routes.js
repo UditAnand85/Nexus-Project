@@ -40,4 +40,12 @@ router.patch(
   jobsController.stopShortlisting
 );
 
+// PATCH /api/v1/jobs/:id/start-evaluation — Start evaluating candidates
+router.patch(
+  '/:id/start-evaluation',
+  authenticateAdmin,
+  allowWriteAccess,
+  jobsController.startEvaluation
+);
+
 export default router;

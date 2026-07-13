@@ -184,6 +184,27 @@ export const stopShortlisting = async (jobId) => {
   return updatedJob;
 };
 
+// ─── Start Evaluation ────────────────────────────────────────────────────────
+
+/**
+ * Sets job_status to "Evaluation Started".
+ */
+export const startEvaluation = async (jobId) => {
+  const job = await getJobById(jobId);
+
+  if (job.job_status === 'Evaluation Started') {
+    throw new AppError('Evaluation has already started for this job.', 400);
+  }
+
+  const [updatedJob] = await db
+    .update(jobs)
+    .set({ job_status: 'Evaluation Started', updated_at: new Date() })
+    .where(eq(jobs.job_id, jobId))
+    .returning();
+
+  return updatedJob;
+};
+
 // ─── Get Ranked Candidates ───────────────────────────────────────────────────
 
 export const getRankedStudents = async (jobId) => {
@@ -196,6 +217,7 @@ export const getRankedStudents = async (jobId) => {
       job_id: students.job_id,
 
       resume_score: students.resume_score,
+      parsed_resume_json: students.parsed_resume_json,
       application_status: students.application_status,
       created_at: students.created_at,
       shortlisted_id: shortlistedStudents.shortlisted_id,
@@ -210,12 +232,12 @@ export const getRankedStudents = async (jobId) => {
     .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.job_id, jobId));
 
-  // Sort by final_score descending (place nulls at the end)
+  // Sort by resume_score descending (place nulls at the end)
   const sorted = result.sort((a, b) => {
-    const scoreA = a.final_score ? parseFloat(a.final_score) : 0;
-    const scoreB = b.final_score ? parseFloat(b.final_score) : 0;
+    const scoreA = a.resume_score ? parseFloat(a.resume_score) : 0;
+    const scoreB = b.resume_score ? parseFloat(b.resume_score) : 0;
     return scoreB - scoreA;
-  });
+  }).slice(0, 15);
 
   // Assign ranks
   return sorted.map((item, index) => ({

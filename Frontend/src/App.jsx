@@ -12,6 +12,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import JobCreate from "./pages/JobCreate";
+import JobCandidates from "./pages/JobCandidates";
 import { getJob, getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout, getAdminMe, getStudentMe, getStoredAdmin } from "./api/apiClient";
 import { checkBackendHealth } from "./api/config";
 import { useApi } from "./utils/useApi";
@@ -22,6 +23,7 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [submittedStudent, setSubmittedStudent] = useState(null);
   const [drawerStudentId, setDrawerStudentId] = useState(null);
+  const [adminActiveJobId, setAdminActiveJobId] = useState(null);
   const [adminAccount, setAdminAccount] = useState(() => getStoredAdmin());
   const [studentAccount, setStudentAccount] = useState(() => getStoredStudentAccount());
   const [backendOk, setBackendOk] = useState(true);
@@ -200,8 +202,19 @@ export default function App() {
         <AdminDashboard
           admin={adminAccount}
           onNewJob={() => navigate("job-create")}
-          onOpenCandidate={(id) => setDrawerStudentId(id)}
+          onOpenJobCandidates={(jobId) => {
+            setAdminActiveJobId(jobId);
+            navigate("job-candidates");
+          }}
           onLogout={handleAdminLogout}
+        />
+      )}
+
+      {view === "job-candidates" && (
+        <JobCandidates
+          jobId={adminActiveJobId}
+          onBack={() => navigate("admin-dashboard")}
+          onOpenCandidate={(id) => setDrawerStudentId(id)}
         />
       )}
 

@@ -175,3 +175,8 @@ export const STAGE_LABEL = {
   Rejected: { cls: "review", label: "Rejected" },
   Hired: { cls: "invited", label: "Hired" },
 };
+
+export async function startEvaluation(job_id) {
+  const res = await apiFetch(`/jobs/${job_id}/start-evaluation`, { method: "PATCH" }, "admin");
+  return res.data;
+}

@@ -27,11 +27,32 @@ export default function CandidateDrawer({ student, job, onClose }) {
             </div>
 
             <div className="my-7">
+              <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3">
+                AI summary
+              </span>
+              <div className="text-ink text-sm leading-relaxed whitespace-pre-wrap bg-[#F9F9F8] p-4 rounded-lg border border-line">
+                {(() => {
+                  const data = student.parsed_resume_json;
+                  if (!data) return "No AI summary extracted yet.";
+                  if (typeof data === "string") {
+                    try {
+                      const parsed = JSON.parse(data);
+                      if (typeof parsed === "string") return parsed;
+                      if (typeof parsed === "object" && parsed !== null) return JSON.stringify(parsed, null, 2);
+                      return String(parsed);
+                    } catch (e) {
+                      return data;
+                    }
+                  }
+                  if (typeof data === "object") return JSON.stringify(data, null, 2);
+                  return String(data);
+                })()}
+              </div>
+            </div>
+
+            <div className="my-7">
               {[
                 ["resume_score", student.resume_score],
-                ["video_score", student.video_score],
-                ["aptitude_score", student.aptitude_score],
-                ["final_score", student.final_score],
                 ["current_stage", student.current_stage ?? student.application_status],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between items-center py-3 border-b border-line">
@@ -41,16 +62,9 @@ export default function CandidateDrawer({ student, job, onClose }) {
               ))}
               <div className="flex justify-between items-center py-3 border-b border-line">
                 <span className="text-[13px] text-inksoft">resume_url</span>
-                <span className="font-mono text-[11px]">{student.resume_url}</span>
+                <span className="font-mono text-[11px] truncate max-w-[200px] text-right" title={student.resume_url}>{student.resume_url || "—"}</span>
               </div>
             </div>
-
-            <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3">
-              AI summary
-            </span>
-            <p className="text-inksoft text-sm leading-relaxed">
-              {student.recommendation || "No recommendation yet — evaluation in progress."}
-            </p>
 
             <div className="flex gap-2.5 mt-7">
               <button className="btn-primary flex-1 text-[13px] py-2.5">Invite</button>
