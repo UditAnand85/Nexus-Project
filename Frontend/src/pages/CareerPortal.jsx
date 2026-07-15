@@ -1,9 +1,11 @@
 import { getJobs } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
+import { useNavigate } from "react-router-dom";
 import JobRow from "../components/JobRow";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function CareerPortal({ onOpenJob }) {
+export default function CareerPortal() {
+  const navigate = useNavigate();
   const { data: jobs, loading, error, refetch } = useApi(() => getJobs(), []);
 
   return (
@@ -28,7 +30,7 @@ export default function CareerPortal({ onOpenJob }) {
         <>
           <div className="flex flex-col border-t border-line">
             {jobs.filter(j => j.job_status === "Open" && new Date(j.application_end_date) >= new Date()).map((job) => (
-              <JobRow key={job.job_id} job={job} onClick={() => onOpenJob(job.job_id)} />
+              <JobRow key={job.job_id} job={job} onClick={() => navigate(`/job/${job.job_id}`)} />
             ))}
             {jobs.filter(j => j.job_status === "Open" && new Date(j.application_end_date) >= new Date()).length === 0 && (
               <p className="text-inksoft text-sm py-10 text-center">No open roles right now — check back soon.</p>

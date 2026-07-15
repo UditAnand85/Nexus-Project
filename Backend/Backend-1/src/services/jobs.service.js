@@ -1,7 +1,11 @@
 import { eq, desc, sql, inArray } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
+import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { db } from '../config/db.js';
 import { jobs, students, shortlistedStudents, admin } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { sesClient } from '../config/ses.js';
+import { env } from '../config/env.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
 
@@ -196,11 +200,96 @@ export const startEvaluation = async (jobId) => {
     throw new AppError('Evaluation has already started for this job.', 400);
   }
 
+  if (job.job_status !== 'Shortlisting Closed') {
+    throw new AppError('You must close shortlisting before starting evaluation.', 400);
+  }
+
   const [updatedJob] = await db
     .update(jobs)
     .set({ job_status: 'Evaluation Started', updated_at: new Date() })
     .where(eq(jobs.job_id, jobId))
     .returning();
+
+  // ─── Send evaluation emails to all shortlisted candidates ───────────────────
+  try {
+    const shortlisted = await db
+      .select({
+        student_id: students.student_id,
+        full_name: students.full_name,
+        email: students.email,
+      })
+      .from(shortlistedStudents)
+      .innerJoin(students, eq(shortlistedStudents.student_id, students.student_id))
+      .where(eq(students.job_id, jobId));
+
+    const clientUrl = env.CLIENT_URL || 'http://localhost:5173';
+
+    for (const candidate of shortlisted) {
+      // Sign a JWT valid for 7 days
+      const token = jwt.sign(
+        { student_id: candidate.student_id, job_id: jobId },
+        env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      const evaluationUrl = `${clientUrl}/evaluate?token=${token}`;
+
+      const emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: #ffffff;">
+          <div style="margin-bottom: 32px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <div style="width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                <span style="color: white; font-family: monospace; font-size: 11px; font-weight: 600;">RA</span>
+              </div>
+              <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">HireFlowAI</span>
+            </div>
+          </div>
+
+          <h1 style="font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 8px;">You've been shortlisted! 🎉</h1>
+          <p style="font-size: 15px; color: #555; margin: 0 0 24px; line-height: 1.6;">
+            Hi <strong>${candidate.full_name}</strong>, congratulations! You have been shortlisted for the role of
+            <strong>${job.job_title}</strong>. The next step is your online evaluation.
+          </p>
+
+          <div style="background: #f8f8f7; border: 1px solid #e5e5e3; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+            <p style="font-size: 13px; color: #888; margin: 0 0 12px; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em;">Your evaluation includes</p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 14px; color: #1a1a1a;">🎥 &nbsp;<strong>Step 1</strong> — Video Introduction</div>
+              <div style="font-size: 14px; color: #1a1a1a;">🧠 &nbsp;<strong>Step 2</strong> — Aptitude Test</div>
+              <div style="font-size: 14px; color: #1a1a1a;">💻 &nbsp;<strong>Step 3</strong> — Technical Assessment</div>
+              <div style="font-size: 14px; color: #1a1a1a;">⭐ &nbsp;<strong>Step 4</strong> — Final Review</div>
+            </div>
+          </div>
+
+          <p style="font-size: 13px; color: #888; margin: 0 0 12px;">This link is unique to you and valid for <strong>7 days</strong>. Do not share it.</p>
+
+          <a href="${evaluationUrl}" style="display: inline-block; background: #1a1a1a; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">Start My Evaluation →</a>
+
+          <p style="font-size: 12px; color: #aaa; margin-top: 32px; line-height: 1.5;">If the button doesn't work, copy and paste this link: <br>${evaluationUrl}</p>
+        </div>
+      `;
+
+      const emailCommand = new SendEmailCommand({
+        Source: env.AWS_SES_FROM_EMAIL,
+        Destination: { ToAddresses: [candidate.email] },
+        Message: {
+          Subject: { Data: `Action Required: Start your evaluation for ${job.job_title}`, Charset: 'UTF-8' },
+          Body: { Html: { Data: emailHtml, Charset: 'UTF-8' } },
+        },
+      });
+
+      try {
+        await sesClient.send(emailCommand);
+        console.log(`[Evaluation] Email sent successfully to ${candidate.email}`);
+      } catch (err) {
+        console.error(`[Evaluation] Failed to send email to ${candidate.email} (Is it verified in AWS Sandbox?):`, err.message);
+      }
+    }
+
+    console.log(`[Evaluation] Finished processing emails for ${shortlisted.length} candidates for job ${jobId}`);
+  } catch (err) {
+    console.error('[Evaluation] Fatal error in email dispatch block:', err.message);
+  }
 
   return updatedJob;
 };

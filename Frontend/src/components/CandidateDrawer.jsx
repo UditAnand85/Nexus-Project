@@ -62,7 +62,13 @@ export default function CandidateDrawer({ student, job, onClose }) {
               ))}
               <div className="flex justify-between items-center py-3 border-b border-line">
                 <span className="text-[13px] text-inksoft">resume_url</span>
-                <span className="font-mono text-[11px] truncate max-w-[200px] text-right" title={student.resume_url}>{student.resume_url || "—"}</span>
+                {student.resume_url ? (
+                  <a href={student.resume_url} target="_blank" rel="noreferrer" className="text-go text-sm underline hover:opacity-80">
+                    View PDF
+                  </a>
+                ) : (
+                  <span className="font-mono text-[11px] truncate max-w-[200px] text-right">—</span>
+                )}
               </div>
             </div>
 

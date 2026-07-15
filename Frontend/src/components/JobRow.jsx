@@ -1,6 +1,6 @@
 import { formatDate } from "../utils/format";
 
-export default function JobRow({ job, onClick, adminMeta = false, admin = null, onStopShortlisting = null, onDeleteJob = null }) {
+export default function JobRow({ job, onClick, adminMeta = false, admin = null, onStopShortlisting = null, onStartEvaluation = null, onDeleteJob = null }) {
   const isClosed = job.job_status !== "Open" || new Date(job.application_end_date) < new Date();
 
   let statusLabel = "Open";
@@ -40,6 +40,17 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
           className="font-mono text-xs text-stop border border-stop rounded px-2 py-1 hover:bg-[#FFF5F5] transition"
         >
           Close
+        </button>
+      )}
+      {adminMeta && isClosed && job.job_status === "Shortlisting Closed" && admin?.role_key !== "R004" && onStartEvaluation && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onStartEvaluation(job.job_id);
+          }}
+          className="font-mono text-xs text-primary border border-primary rounded px-2 py-1 hover:bg-blue-50 transition whitespace-nowrap"
+        >
+          ▶ Evaluate
         </button>
       )}
       {adminMeta && isClosed && admin?.role_key !== "R004" && onDeleteJob && (

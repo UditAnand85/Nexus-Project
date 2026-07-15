@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { studentRegister } from "../api/apiClient";
 import { validateEmail, validatePhone, validatePassword } from "../utils/format";
 
-export default function StudentRegister({ onRegistered, onGoToLogin }) {
+export default function StudentRegister({ onRegistered }) {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -26,8 +28,9 @@ export default function StudentRegister({ onRegistered, onGoToLogin }) {
     setSubmitting(true);
     setFormError(null);
     try {
-      const { account } = await studentRegister(form);
-      onRegistered(account);
+      const profile = await studentRegister(form);
+      onRegistered(profile);
+      navigate("/");
     } catch (err) {
       setFormError(err.message || "Couldn't create your account. Please try again.");
     } finally {
@@ -44,19 +47,19 @@ export default function StudentRegister({ onRegistered, onGoToLogin }) {
         </div>
 
         <Field label="Full name" error={errors.full_name}>
-          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} />
+          <input type="text" name="name" id="name" autoComplete="name" className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} />
+          <input type="email" name="email" id="email" autoComplete="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} />
         </Field>
         <Field label="Phone" error={errors.phone}>
-          <input className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} />
+          <input type="tel" name="phone" id="phone" autoComplete="tel" className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} />
         </Field>
         <Field label="Password" error={errors.password}>
-          <input type="password" className="field-input" placeholder="At least 6 characters" value={form.password} onChange={update("password")} />
+          <input type="password" name="password" id="password" autoComplete="new-password" className="field-input" placeholder="At least 6 characters" value={form.password} onChange={update("password")} />
         </Field>
         <Field label="Confirm password" error={errors.confirm}>
-          <input type="password" className="field-input" value={form.confirm} onChange={update("confirm")} />
+          <input type="password" name="confirm_password" id="confirm_password" autoComplete="new-password" className="field-input" value={form.confirm} onChange={update("confirm")} />
         </Field>
 
         {formError && <p className="text-xs text-stop mb-3">{formError}</p>}
@@ -65,11 +68,11 @@ export default function StudentRegister({ onRegistered, onGoToLogin }) {
           {submitting ? "Creating account…" : "Create account"}
         </button>
 
-        <p className="text-[13px] text-inksoft text-center mt-5">
+        <p className="text-center text-sm text-inksoft mt-6">
           Already have an account?{" "}
-          <button onClick={onGoToLogin} className="text-primary font-medium underline underline-offset-2">
-            Sign in
-          </button>
+          <Link to="/student-login" className="text-ink font-medium hover:underline">
+            Sign in here
+          </Link>
         </p>
       </div>
     </div>

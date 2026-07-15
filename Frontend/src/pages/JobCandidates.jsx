@@ -1,9 +1,12 @@
+import { useParams, useNavigate } from "react-router-dom";
 import { getRankedStudents, getJob, startEvaluation } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
 import CandidateRow from "../components/CandidateRow";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function JobCandidates({ jobId, onBack, onOpenCandidate }) {
+export default function JobCandidates({ onOpenCandidate }) {
+  const { id: jobId } = useParams();
+  const navigate = useNavigate();
   const { data: job, loading: jobLoading, error: jobError } = useApi(() => (jobId ? getJob(jobId) : Promise.resolve(null)), [jobId]);
   const {
     data: ranked, loading: rankedLoading, error: rankedError, refetch: refetchRanked,
@@ -13,7 +16,7 @@ export default function JobCandidates({ jobId, onBack, onOpenCandidate }) {
 
   return (
     <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <button onClick={onBack} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7 hover:text-ink transition">
+      <button onClick={() => navigate("/admin/dashboard")} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7 hover:text-ink transition">
         ← Back to dashboard
       </button>
 
@@ -34,7 +37,7 @@ export default function JobCandidates({ jobId, onBack, onOpenCandidate }) {
               onClick={async () => {
                 try {
                   await startEvaluation(jobId);
-                  alert("Evaluation started and emails sent successfully! (Email system coming soon)");
+                  alert("Evaluation started and emails sent successfully!");
                   window.location.reload();
                 } catch (e) {
                   alert(e.message || "Failed to start evaluation.");

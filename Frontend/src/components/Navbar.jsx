@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { APP_NAME } from "../constants/roles";
 
-const ADMIN_VIEWS = ["admin-login", "admin-dashboard", "job-create"];
-
-export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigate }) {
+export default function Navbar({ isStudentAuthed, isAdminAuthed, onNavigate }) {
+  const location = useLocation();
+  const view = location.pathname;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -18,12 +19,11 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const isAdminSection = ADMIN_VIEWS.includes(view);
+  const isAdminSection = view.startsWith("/admin");
 
   return (
     <div className="flex items-center justify-between px-8 py-5 border-b border-line bg-paper sticky top-0 z-50">
-      {/* Logo */}
-      <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNavigate("portal")}>
+      <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNavigate("/")}>
         <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center text-white font-mono font-semibold text-[13px]">
           RA
         </div>
@@ -33,9 +33,9 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
       {/* Right nav */}
       <div className="flex gap-1.5 items-center">
         <button
-          onClick={() => onNavigate("portal")}
+          onClick={() => onNavigate("/")}
           className={`px-4 py-2 text-sm rounded-full transition ${
-            !isAdminSection && view !== "my-applications"
+            !isAdminSection && view !== "/my-applications"
               ? "bg-primary text-white"
               : "text-inksoft hover:bg-[#EEEFEC] hover:text-ink"
           }`}
@@ -46,9 +46,9 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
         {/* My Applications — shown only when a candidate is signed in */}
         {isStudentAuthed && (
           <button
-            onClick={() => onNavigate("my-applications")}
+            onClick={() => onNavigate("/my-applications")}
             className={`px-4 py-2 text-sm rounded-full transition ${
-              view === "my-applications"
+              view === "/my-applications"
                 ? "bg-primary text-white"
                 : "text-inksoft hover:bg-[#EEEFEC] hover:text-ink"
             }`}
@@ -60,7 +60,7 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
         {/* Admin Dashboard — shown only when an admin is signed in */}
         {isAdminAuthed && (
           <button
-            onClick={() => onNavigate("admin-dashboard")}
+            onClick={() => onNavigate("/admin/dashboard")}
             className={`px-4 py-2 text-sm rounded-full transition ${
               isAdminSection
                 ? "bg-primary text-white"
@@ -78,7 +78,7 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
 
             {isAdminSection ? (
               <button
-                onClick={() => onNavigate("admin-dashboard")}
+                onClick={() => onNavigate("/admin-login")}
                 className="px-4 py-2 text-sm rounded-full bg-ink text-white transition"
               >
                 Admin
@@ -115,12 +115,12 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
                     <MenuItem
                       label="Sign in as Candidate"
                       sub="Apply to open roles"
-                      onClick={() => { onNavigate("student-login"); setMenuOpen(false); }}
+                      onClick={() => { onNavigate("/student-login"); setMenuOpen(false); }}
                     />
                     <MenuItem
                       label="Create account"
                       sub="Register to apply"
-                      onClick={() => { onNavigate("student-register"); setMenuOpen(false); }}
+                      onClick={() => { onNavigate("/student-register"); setMenuOpen(false); }}
                     />
 
                     <div className="mx-3.5 my-1.5 h-px bg-line" />
@@ -133,7 +133,7 @@ export default function Navbar({ view, isStudentAuthed, isAdminAuthed, onNavigat
                       label="Admin Sign in"
                       sub="HR recruiter access"
                       onClick={() => {
-                        onNavigate("admin-login");
+                        onNavigate("/admin-login");
                         setMenuOpen(false);
                       }}
                     />

@@ -1,9 +1,19 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { formatDate } from "../utils/format";
 import { Loading, ErrorState } from "../components/Status";
+import { useApi } from "../utils/useApi";
+import { getJob } from "../api/apiClient";
 
-export default function JobDetail({ job, loading, error, onBack, onApply, onRetry, requiresLogin, isAdminAuthed }) {
+export default function JobDetail({ requiresLogin, isAdminAuthed }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [showResultsInfo, setShowResultsInfo] = useState(false);
+
+  const { data: job, loading, error, refetch: onRetry } = useApi(
+    () => (id ? getJob(id) : Promise.resolve(null)), 
+    [id]
+  );
 
   if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
   if (error) return <div className="max-w-[1080px] mx-auto px-8 py-12"><ErrorState message={error} onRetry={onRetry} /></div>;
@@ -14,7 +24,7 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
 
   return (
     <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <button onClick={onBack} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7">
+      <button onClick={() => navigate("/")} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7">
         ← All roles
       </button>
 
@@ -48,9 +58,13 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
         <div className="flex gap-3.5 items-center">
           {!isClosed ? (
             isAdminAuthed ? (
-              <span className="text-inksoft text-sm font-mono border border-line px-3 py-1.5 rounded bg-panel">Admins cannot apply to jobs</span>
+              <button disabled className="btn-primary opacity-50 cursor-not-allowed">
+                Applying as Admin Disabled
+              </button>
             ) : (
-              <button onClick={onApply} className="btn-primary">Apply now</button>
+              <button onClick={() => navigate(`/apply/${job.job_id}`)} className="btn-primary">
+                {requiresLogin ? "Sign in to apply" : "Apply now"}
+              </button>
             )
           ) : (
             <button 
@@ -61,7 +75,7 @@ export default function JobDetail({ job, loading, error, onBack, onApply, onRetr
               View Results
             </button>
           )}
-          <button onClick={onBack} className="btn-ghost">Back to roles</button>
+          <button onClick={() => navigate("/")} className="btn-ghost">Back to roles</button>
           {!isClosed && !isAdminAuthed && requiresLogin && (
             <span className="text-inksoft text-xs font-mono">Sign in required to apply</span>
           )}

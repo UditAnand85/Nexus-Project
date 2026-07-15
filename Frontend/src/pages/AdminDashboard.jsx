@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { getJobs, getRankedStudents, getStats, getJob, stopShortlisting, deleteJob } from "../api/apiClient";
+import { getJobs, getRankedStudents, getStats, getJob, stopShortlisting, deleteJob, startEvaluation } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
+import { useNavigate } from "react-router-dom";
 import JobRow from "../components/JobRow";
 import CandidateRow from "../components/CandidateRow";
 import TeamTab from "../components/TeamTab";
@@ -11,7 +12,8 @@ const TABS = [
   { key: "team",    label: "Team" },      // Super Admin only
 ];
 
-export default function AdminDashboard({ admin, onNewJob, onOpenJobCandidates, onLogout }) {
+export default function AdminDashboard({ admin, onLogout }) {
+  const navigate = useNavigate();
   const isSuperAdmin = admin?.role_key === "R001";
 
   const [tab, setTab] = useState("jobs");
@@ -38,6 +40,16 @@ export default function AdminDashboard({ admin, onNewJob, onOpenJobCandidates, o
     catch (err) { alert(err.message || "Could not delete job"); }
   };
 
+  const handleStartEvaluation = async (jobId) => {
+    if (!window.confirm("Start evaluation for this job? An email will be sent to all shortlisted candidates with their unique assessment link.")) return;
+    try {
+      await startEvaluation(jobId);
+      refetchJobs();
+    } catch (err) {
+      alert(err.message || "Could not start evaluation");
+    }
+  };
+
   const visibleTabs = TABS.filter((t) => t.key !== "team" || isSuperAdmin);
 
   return (
@@ -53,7 +65,7 @@ export default function AdminDashboard({ admin, onNewJob, onOpenJobCandidates, o
         </div>
         <div className="flex gap-3">
           {admin?.role_key !== "R004" && (
-            <button onClick={onNewJob} className="btn-primary">+ New job</button>
+            <button onClick={() => navigate("/admin/job/create")} className="btn-primary">+ New job</button>
           )}
           <button onClick={onLogout} className="btn-ghost">Log out</button>
         </div>
@@ -96,8 +108,9 @@ export default function AdminDashboard({ admin, onNewJob, onOpenJobCandidates, o
                   adminMeta
                   admin={admin}
                   onStopShortlisting={handleStopShortlisting}
+                  onStartEvaluation={handleStartEvaluation}
                   onDeleteJob={handleDeleteJob}
-                  onClick={() => onOpenJobCandidates(job.job_id)}
+                  onClick={() => navigate(`/admin/job/${job.job_id}/candidates`)}
                 />
               ))}
               {jobs.length === 0 && (

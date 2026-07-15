@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { submitApplication } from "../api/apiClient";
+import { useParams, useNavigate } from "react-router-dom";
+import { submitApplication, getJob } from "../api/apiClient";
 import { validateResumeFile } from "../utils/format";
+import { useApi } from "../utils/useApi";
+import { Loading, ErrorState } from "../components/Status";
 
-export default function Apply({ job, account, onBack, onSubmitted }) {
+export default function Apply({ account, onSubmitted }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { data: job, loading, error } = useApi(() => (id ? getJob(id) : Promise.resolve(null)), [id]);
+
   const [form, setForm] = useState({
     full_name: account?.full_name || "",
     email: account?.email || "",
@@ -51,16 +58,18 @@ export default function Apply({ job, account, onBack, onSubmitted }) {
     }
   };
 
+  if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
+  if (error) return <div className="max-w-[1080px] mx-auto px-8 py-12"><ErrorState message={error} /></div>;
+  if (!job) return null;
+
   return (
     <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <button onClick={onBack} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7">
+      <button onClick={() => navigate(`/job/${job.job_id}`)} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7">
         ← Back to role
       </button>
       <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">Step 1 of 3</span>
       <h1 className="text-[30px] font-medium">Submit your application</h1>
-      <p className="text-inksoft text-sm mt-2">
-        Applying to <span className="font-medium text-ink">{job?.job_title}</span>
-      </p>
+      <p className="text-inksoft mt-1.5 mb-8">Role: {job.job_title}</p>
 
       <div className="bg-panel border border-line rounded-xl shadow-sm p-9 max-w-[560px] mt-6">
         <Field label="Name" error={errors.full_name}>

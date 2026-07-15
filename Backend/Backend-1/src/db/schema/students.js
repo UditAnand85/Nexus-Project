@@ -40,6 +40,7 @@ export const students = pgTable('students', {
   email: varchar('email', { length: 255 }).notNull(),
   phone: varchar('phone', { length: 20 }),
   job_id: uuid('job_id').notNull().references(() => jobs.job_id),
+  resume_url: text('resume_url'), // Public URL from Supabase Storage
   parsed_resume_json: json('parsed_resume_json'), // Populated by Backend-2 result
   resume_score: decimal('resume_score', { precision: 5, scale: 2 }), // ATS score (0–100)
   application_status: applicationStatusEnum('application_status')

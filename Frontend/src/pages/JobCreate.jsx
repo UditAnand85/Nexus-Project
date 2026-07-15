@@ -6,6 +6,7 @@ const EMPTY = {
   job_title: "", expected_ctc: "", job_location: "", employment_type: EMPLOYMENT_TYPES[0],
   openings: 1, application_start_date: "", application_end_date: "",
   job_description: "", evaluation_prompt: "", email_template: "default_evaluation_invite",
+  resume_cutoff_score: 50,
 };
 
 export default function JobCreate({ onBack, onPublished }) {
@@ -24,7 +25,11 @@ export default function JobCreate({ onBack, onPublished }) {
     setPublishing(true);
     setError(null);
     try {
-      await createJob({ ...form, openings: Number(form.openings) || 1 });
+      await createJob({ 
+        ...form, 
+        openings: Number(form.openings) || 1,
+        resume_cutoff_score: Number(form.resume_cutoff_score) || 0 
+      });
       onPublished();
     } catch (err) {
       setError(err.message || "Couldn't publish this job. Please try again.");
@@ -62,6 +67,9 @@ export default function JobCreate({ onBack, onPublished }) {
           </Field>
           <Field label="openings">
             <input type="number" min="1" className="field-input" value={form.openings} onChange={update("openings")} />
+          </Field>
+          <Field label="ATS Resume Cutoff Score (0-100)">
+            <input type="number" min="0" max="100" className="field-input" value={form.resume_cutoff_score} onChange={update("resume_cutoff_score")} />
           </Field>
         </div>
 

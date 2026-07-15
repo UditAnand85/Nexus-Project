@@ -5,6 +5,7 @@ import jobsRoutes from './jobs.routes.js';
 import studentsRoutes from './students.routes.js';
 import shortlistedRoutes from './shortlisted.routes.js';
 import employeesRoutes from './employees.routes.js';
+import evaluationRoutes from './evaluation.routes.js';
 import { getStats } from '../controllers/stats.controller.js';
 import { getMyApplications } from '../controllers/user.auth.controller.js';
 import { authenticateAdmin, authenticateToken } from '../middleware/auth.js';
@@ -20,6 +21,7 @@ router.use('/jobs', jobsRoutes);
 router.use('/students', studentsRoutes);
 router.use('/shortlisted', shortlistedRoutes);
 router.use('/employees', employeesRoutes);
+router.use('/evaluate', evaluationRoutes);
 
 // ─── Stats & Dashboard ────────────────────────────────────────────────────────
 router.get('/stats', authenticateAdmin, getStats);

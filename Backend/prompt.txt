@@ -188,3 +188,23 @@ Langrpah should like this
 after all this return all things to Backend-1
 and then Backend-1 will store it in database students table
 then show in frontend (THank you for applying already created that page before)
+
+
+--------------------------evaluation-----------------------------------
+Now Let's create Evaluation Part of the project 
+1. Video Evaluation 
+2. Aptitude Test
+3. Technical test
+4. Final Review
+
+You have to create an Evaluation Page in React Along side other Pages 
+but the whole Flow Looks like 
+
+Once a Evaluator stops Shortlisting for a specific job then no one can apply for that job and on Frontend Side the Job should be closed 
+
+After that there will be a button Evaluate in job admin section when he clicks it Evaluation will start and Mail is send to all candidates by using Amazon SES service 
+
+A URL will be attached to the mail which will be for candidate attach a unique key for the candidate to take the test 
+
+For Now create this much After that Other instructions will be provided related to test I am attaching a picture of the evaluation Page it should look like 
+

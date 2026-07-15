@@ -34,4 +34,7 @@ router.get('/job/:jobId', authenticateAdmin, allowAnyAdmin, studentsController.g
 // GET /api/v1/students/:id — Get a specific student record
 router.get('/:id', authenticateAdmin, allowAnyAdmin, studentsController.getStudentById);
 
+// POST /api/v1/students/retry-failed — Retry un-processed resumes (Disaster Recovery)
+router.post('/retry-failed', authenticateAdmin, allowAnyAdmin, studentsController.retryFailedResumes);
+
 export default router;

@@ -1,7 +1,12 @@
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, isNull } from 'drizzle-orm';
+import crypto from 'crypto';
 import { db } from '../config/db.js';
 import { students, jobs, shortlistedStudents } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { resumeQueue } from '../queues/resume.queue.js';
+import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from '../config/s3.js';
+import { env } from '../config/env.js';
 
 // ─── Submit Application ───────────────────────────────────────────────────────
 
@@ -51,44 +56,7 @@ export const submitApplication = async ({
     throw new AppError('You have already submitted an application for this job.', 409);
   }
 
-  // 4. Call Backend-2 for AI Parsing synchronously
-  let parsed_resume_json = null;
-  let resume_score = 0;
-
-  try {
-    const formData = new FormData();
-    formData.append('name', full_name);
-    formData.append('email', email);
-    if (phone) formData.append('phone', phone);
-    formData.append('job_id', jobId.toString());
-    formData.append('evaluation_prompt', job.evaluation_prompt || '');
-    formData.append('resume_cutoff_score', (job.resume_cutoff_score || 0).toString());
-    formData.append('job_title', job.job_title || '');
-    formData.append('job_description', job.job_description || '');
-    
-    const resumeBlob = new Blob([resumeBuffer], { type: resumeMimeType });
-    formData.append('resume', resumeBlob, resumeOriginalName);
-
-    const backend2Url = process.env.BACKEND2_URL || 'http://127.0.0.1:5001';
-    console.log(`[Service] Sending resume to Backend-2 at ${backend2Url}/api/v1/resume/parse`);
-    
-    const response = await fetch(`${backend2Url}/api/v1/resume/parse`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await response.json();
-    if (data.success && data.data) {
-      parsed_resume_json = data.data.parsed_resume_json;
-      resume_score = data.data.resume_score;
-    } else {
-      console.error('[Service] Backend-2 error:', data.message);
-    }
-  } catch (error) {
-    console.error('[Service] Failed to parse resume in Backend-2:', error);
-  }
-
-  // 5. Create student record with parsed AI data
+  // 4. Create student record first with null AI data
   const [newStudent] = await db
     .insert(students)
     .values({
@@ -97,17 +65,80 @@ export const submitApplication = async ({
       phone: phone || null,
       job_id: jobId,
 
-      parsed_resume_json: parsed_resume_json,
-      resume_score: resume_score,
+      parsed_resume_json: null,
+      resume_score: null,
       application_status: 'Applied',
     })
     .returning();
+
+  // 4.5 Upload resume to AWS S3
+  let resume_url = null;
+  try {
+    const fileHash = crypto.createHash('sha256').update(resumeBuffer).digest('hex');
+    const fileExtension = resumeOriginalName.split('.').pop();
+    const fileName = `${fileHash}.${fileExtension}`;
+    
+    const command = new PutObjectCommand({
+      Bucket: env.AWS_S3_BUCKET_NAME,
+      Key: fileName,
+      Body: resumeBuffer,
+      ContentType: resumeMimeType,
+    });
+
+    try {
+      await s3Client.send(command);
+      
+      // Construct public URL
+      resume_url = `https://${env.AWS_S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+      // Update student record with resume_url
+      await db.update(students)
+        .set({ resume_url })
+        .where(eq(students.student_id, newStudent.student_id));
+        
+      newStudent.resume_url = resume_url;
+    } catch (uploadError) {
+      console.error('[Service] AWS S3 upload error:', uploadError);
+    }
+  } catch (err) {
+    console.error('[Service] Failed to upload resume to S3:', err);
+  }
+
+  // 5. Push job to Queue for background processing
+  try {
+    const base64Resume = resumeBuffer.toString('base64');
+
+    await resumeQueue.add('parse_resume', {
+      student_id: newStudent.student_id,
+      base64Resume,
+      mimeType: resumeMimeType,
+      originalName: resumeOriginalName,
+      formDataParams: {
+        full_name,
+        email,
+        phone,
+        jobId,
+        evaluation_prompt: job.evaluation_prompt,
+        resume_cutoff_score: job.resume_cutoff_score,
+        job_title: job.job_title,
+        job_description: job.job_description,
+      }
+    });
+
+    console.log(`[Service] Pushed resume to queue for student ${newStudent.student_id}`);
+  } catch (error) {
+    console.error(`[Service] Failed to push to queue for student ${newStudent.student_id}`, error);
+    // Note: We swallow the error here so the user still gets a success response,
+    // but the resume won't be processed. In a robust system, we might delete the user
+    // or flag them as failed.
+  }
 
   return {
     student_id: newStudent.student_id,
     full_name: newStudent.full_name,
     email: newStudent.email,
     job_id: newStudent.job_id,
+    resume_url: newStudent.resume_url,
     resume_score: newStudent.resume_score,
     parsed_resume_json: newStudent.parsed_resume_json,
     application_status: newStudent.application_status,
@@ -137,6 +168,7 @@ export const getStudentById = async (studentId) => {
       email: students.email,
       phone: students.phone,
       job_id: students.job_id,
+      resume_url: students.resume_url,
 
       resume_score: students.resume_score,
       parsed_resume_json: students.parsed_resume_json,
@@ -160,4 +192,92 @@ export const getStudentById = async (studentId) => {
   }
 
   return result[0];
+};
+
+// ─── Disaster Recovery ────────────────────────────────────────────────────────
+
+export const retryFailedResumes = async () => {
+  // 1. Fetch students where resume_score is null (not processed) 
+  const failedStudents = await db
+    .select({
+      student_id: students.student_id,
+      full_name: students.full_name,
+      email: students.email,
+      phone: students.phone,
+      resume_url: students.resume_url,
+      job_id: jobs.job_id,
+      evaluation_prompt: jobs.evaluation_prompt,
+      resume_cutoff_score: jobs.resume_cutoff_score,
+      job_title: jobs.job_title,
+      job_description: jobs.job_description,
+    })
+    .from(students)
+    .innerJoin(jobs, eq(students.job_id, jobs.job_id))
+    .where(and(isNull(students.resume_score), eq(students.application_status, 'Applied')));
+
+  let count = 0;
+
+  for (const student of failedStudents) {
+    if (!student.resume_url) continue;
+
+    try {
+      // 2. Extract fileName from resume_url
+      const urlParts = student.resume_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+
+      // 3. Download from S3
+      const command = new GetObjectCommand({
+        Bucket: env.AWS_S3_BUCKET_NAME,
+        Key: fileName,
+      });
+
+      let response;
+      try {
+        response = await s3Client.send(command);
+      } catch (error) {
+        console.error(`[Service] Failed to download resume for student ${student.student_id}:`, error);
+        continue;
+      }
+
+      // 4. Convert stream to base64
+      const streamToBuffer = async (stream) => {
+        return new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on('data', (chunk) => chunks.push(chunk));
+          stream.on('error', reject);
+          stream.on('end', () => resolve(Buffer.concat(chunks)));
+        });
+      };
+      
+      const buffer = await streamToBuffer(response.Body);
+      const base64Resume = buffer.toString('base64');
+      
+      const mimeType = response.ContentType || 'application/pdf';
+
+      // 5. Push back to Queue
+      await resumeQueue.add('parse_resume', {
+        student_id: student.student_id,
+        base64Resume,
+        mimeType: mimeType,
+        originalName: fileName, 
+        formDataParams: {
+          full_name: student.full_name,
+          email: student.email,
+          phone: student.phone,
+          jobId: student.job_id,
+          evaluation_prompt: student.evaluation_prompt,
+          resume_cutoff_score: student.resume_cutoff_score,
+          job_title: student.job_title,
+          job_description: student.job_description,
+        }
+      });
+      
+      console.log(`[Service] Re-queued resume for student ${student.student_id}`);
+      count++;
+    } catch (err) {
+      console.error(`[Service] Error processing failed resume for student ${student.student_id}:`, err);
+    }
+  }
+
+  return { queuedCount: count, totalFound: failedStudents.length };
 };

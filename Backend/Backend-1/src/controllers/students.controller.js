@@ -81,3 +81,20 @@ export const getStudentById = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * POST /api/v1/students/retry-failed
+ * Admin: Disaster recovery endpoint to re-queue un-processed resumes.
+ */
+export const retryFailedResumes = async (req, res, next) => {
+  try {
+    const result = await studentsService.retryFailedResumes();
+    res.status(200).json({
+      success: true,
+      message: `Successfully re-queued ${result.queuedCount} out of ${result.totalFound} unprocessed resumes.`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

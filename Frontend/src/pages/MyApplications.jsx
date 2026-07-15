@@ -1,8 +1,10 @@
 import { getMyApplications, STAGE_LABEL } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
+import { useNavigate } from "react-router-dom";
 import { Loading, ErrorState } from "../components/Status";
 
-export default function MyApplications({ account, onBrowseJobs, onLogout }) {
+export default function MyApplications({ account, onLogout }) {
+  const navigate = useNavigate();
   const { data: applications, loading, error, refetch } = useApi(() => getMyApplications(), []);
 
   return (
@@ -23,7 +25,7 @@ export default function MyApplications({ account, onBrowseJobs, onLogout }) {
       {applications && applications.length === 0 && (
         <div className="bg-panel border border-line rounded-xl shadow-sm p-10 text-center">
           <p className="text-inksoft text-sm mb-5">You haven't applied to any roles yet.</p>
-          <button onClick={onBrowseJobs} className="btn-primary">Browse open roles</button>
+          <button onClick={() => navigate("/")} className="btn-primary">Browse open roles</button>
         </div>
       )}
 

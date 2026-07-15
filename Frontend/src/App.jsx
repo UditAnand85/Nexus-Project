@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { Routes, Route, useNavigate, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import CandidateDrawer from "./components/CandidateDrawer";
 import CareerPortal from "./pages/CareerPortal";
 import JobDetail from "./pages/JobDetail";
 import Apply from "./pages/Apply";
 import Evaluation from "./pages/Evaluation";
+import EvaluationLanding from "./pages/EvaluationLanding";
 import StudentLogin from "./pages/StudentLogin";
 import StudentRegister from "./pages/StudentRegister";
 import MyApplications from "./pages/MyApplications";
@@ -13,21 +15,21 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import JobCreate from "./pages/JobCreate";
 import JobCandidates from "./pages/JobCandidates";
-import { getJob, getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout, getAdminMe, getStudentMe, getStoredAdmin } from "./api/apiClient";
+import { getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout, getAdminMe, getStudentMe, getStoredAdmin } from "./api/apiClient";
 import { checkBackendHealth } from "./api/config";
 import { useApi } from "./utils/useApi";
 import { BackendOfflineBanner } from "./components/Status";
 
 export default function App() {
-  const [view, setView] = useState("portal");
-  const [selectedJobId, setSelectedJobId] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [submittedStudent, setSubmittedStudent] = useState(null);
   const [drawerStudentId, setDrawerStudentId] = useState(null);
-  const [adminActiveJobId, setAdminActiveJobId] = useState(null);
+  
   const [adminAccount, setAdminAccount] = useState(() => getStoredAdmin());
   const [studentAccount, setStudentAccount] = useState(() => getStoredStudentAccount());
   const [backendOk, setBackendOk] = useState(true);
-  const [pendingApplyJobId, setPendingApplyJobId] = useState(null);
 
   const isAdminAuthed = !!adminAccount;
   const isStudentAuthed = !!studentAccount;
@@ -35,7 +37,6 @@ export default function App() {
   useEffect(() => {
     checkBackendHealth().then((result) => setBackendOk(result.ok));
 
-    // Restore candidate session on load
     if (getStoredStudentAccount()) {
       getStudentMe()
         .then((profile) => setStudentAccount(profile))
@@ -45,7 +46,6 @@ export default function App() {
         });
     }
 
-    // Restore admin session on load
     if (getStoredAdmin()) {
       getAdminMe()
         .then((profile) => setAdminAccount(profile))
@@ -56,173 +56,95 @@ export default function App() {
     }
   }, []);
 
-  const navigate = (target) => {
-    if (target === "admin-login" && isAdminAuthed) {
-      setView("admin-dashboard");
-    } else {
-      setView(target);
-    }
-    window.scrollTo(0, 0);
-  };
-
-  const openJob = (jobId) => {
-    setSelectedJobId(jobId);
-    setView("jobDetail");
-  };
-
-  const startApply = () => {
-    if (!isStudentAuthed) {
-      setPendingApplyJobId(selectedJobId);
-      navigate("student-login");
-      return;
-    }
-    navigate("apply");
-  };
-
   const handleStudentAuthed = (account) => {
     setStudentAccount(account);
-    if (pendingApplyJobId) {
-      setSelectedJobId(pendingApplyJobId);
-      setPendingApplyJobId(null);
-      navigate("apply");
-    } else {
-      navigate("portal");
-    }
   };
 
   const handleStudentLogout = () => {
     studentLogout();
     setStudentAccount(null);
-    navigate("portal");
+    navigate("/");
   };
 
   const handleAdminLogout = () => {
     adminLogout();
     setAdminAccount(null);
-    navigate("portal");
+    navigate("/");
   };
-
-  const {
-    data: selectedJob,
-    loading: jobLoading,
-    error: jobError,
-    refetch: refetchJob,
-  } = useApi(() => (selectedJobId ? getJob(selectedJobId) : Promise.resolve(null)), [selectedJobId]);
 
   const { data: drawerStudent } = useApi(
     () => (drawerStudentId ? getStudentDetail(drawerStudentId) : Promise.resolve(null)),
     [drawerStudentId]
   );
 
-  const { data: drawerJob } = useApi(
-    () => (drawerStudent?.job_id ? getJob(drawerStudent.job_id) : Promise.resolve(null)),
-    [drawerStudent?.job_id]
-  );
-
   return (
     <div>
       {!backendOk && <BackendOfflineBanner />}
 
-      <Navbar
-        view={view}
-        isStudentAuthed={isStudentAuthed}
-        isAdminAuthed={isAdminAuthed}
-        onNavigate={navigate}
-      />
-
-      {view === "portal" && <CareerPortal onOpenJob={openJob} />}
-
-      {view === "jobDetail" && (
-        <JobDetail
-          job={selectedJob}
-          loading={jobLoading}
-          error={jobError}
-          onRetry={refetchJob}
-          onBack={() => navigate("portal")}
-          onApply={startApply}
-          requiresLogin={!isStudentAuthed}
+      {!location.pathname.startsWith("/evaluate") && (
+        <Navbar
+          isStudentAuthed={isStudentAuthed}
           isAdminAuthed={isAdminAuthed}
+          onNavigate={(path) => navigate(path)}
         />
       )}
 
-      {view === "apply" && (
-        <Apply
-          job={selectedJob}
-          account={studentAccount}
-          onBack={() => navigate("jobDetail")}
-          onSubmitted={(student) => {
-            setSubmittedStudent(student);
-            navigate("evaluation");
-          }}
-        />
-      )}
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<CareerPortal />} />
+        <Route path="/job/:id" element={<JobDetail requiresLogin={!isStudentAuthed} isAdminAuthed={isAdminAuthed} />} />
+        
+        <Route path="/student-login" element={<StudentLogin onLoggedIn={handleStudentAuthed} />} />
+        <Route path="/student-register" element={<StudentRegister onRegistered={handleStudentAuthed} />} />
+        <Route path="/admin-login" element={<AdminLogin onLogin={(admin) => {
+          setAdminAccount(admin);
+          if (admin?.must_change_password) navigate("/admin/change-password");
+          else navigate("/admin/dashboard");
+        }} />} />
 
-      {view === "evaluation" && <Evaluation student={submittedStudent} />}
+        {/* Candidate Protected Routes */}
+        <Route path="/apply/:id" element={
+          isStudentAuthed ? 
+          <Apply account={studentAccount} onSubmitted={(s) => { setSubmittedStudent(s); navigate("/evaluation-success"); }} /> : 
+          <Navigate to="/student-login" state={{ from: location }} replace />
+        } />
+        <Route path="/evaluation-success" element={<Evaluation student={submittedStudent} />} />
+        <Route path="/my-applications" element={
+          isStudentAuthed ? 
+          <MyApplications account={studentAccount} onBrowseJobs={() => navigate("/")} onLogout={handleStudentLogout} /> : 
+          <Navigate to="/student-login" replace />
+        } />
+        <Route path="/evaluate" element={<EvaluationLanding />} />
 
-      {view === "student-login" && (
-        <StudentLogin onLoggedIn={handleStudentAuthed} onGoToRegister={() => navigate("student-register")} />
-      )}
-
-      {view === "student-register" && (
-        <StudentRegister onRegistered={handleStudentAuthed} onGoToLogin={() => navigate("student-login")} />
-      )}
-
-      {view === "my-applications" && (
-        <MyApplications account={studentAccount} onBrowseJobs={() => navigate("portal")} onLogout={handleStudentLogout} />
-      )}
-
-      {view === "admin-login" && (
-        <AdminLogin
-          onLogin={(admin) => {
-            setAdminAccount(admin);
-            // First login — force password change before accessing dashboard
-            if (admin?.must_change_password) {
-              navigate("change-password");
-            } else {
-              navigate("admin-dashboard");
-            }
-          }}
-        />
-      )}
-
-      {view === "change-password" && (
-        <ChangePassword
-          admin={adminAccount}
-          onChanged={() => {
-            // Clear the must_change_password flag locally and go to dashboard
+        {/* Admin Protected Routes */}
+        <Route path="/admin/dashboard" element={
+          isAdminAuthed ? 
+          <AdminDashboard admin={adminAccount} onLogout={handleAdminLogout} /> : 
+          <Navigate to="/admin-login" replace />
+        } />
+        <Route path="/admin/change-password" element={
+          isAdminAuthed ? 
+          <ChangePassword admin={adminAccount} onChanged={() => {
             const updated = { ...adminAccount, must_change_password: false };
             setAdminAccount(updated);
             localStorage.setItem("recruitai_admin_user", JSON.stringify(updated));
-            navigate("admin-dashboard");
-          }}
-        />
-      )}
+            navigate("/admin/dashboard");
+          }} /> : 
+          <Navigate to="/admin-login" replace />
+        } />
+        <Route path="/admin/job/create" element={
+          isAdminAuthed ? 
+          <JobCreate onBack={() => navigate("/admin/dashboard")} onPublished={() => navigate("/admin/dashboard")} /> : 
+          <Navigate to="/admin-login" replace />
+        } />
+        <Route path="/admin/job/:id/candidates" element={
+          isAdminAuthed ? 
+          <JobCandidates onBack={() => navigate("/admin/dashboard")} onOpenCandidate={(id) => setDrawerStudentId(id)} /> : 
+          <Navigate to="/admin-login" replace />
+        } />
+      </Routes>
 
-      {view === "admin-dashboard" && (
-        <AdminDashboard
-          admin={adminAccount}
-          onNewJob={() => navigate("job-create")}
-          onOpenJobCandidates={(jobId) => {
-            setAdminActiveJobId(jobId);
-            navigate("job-candidates");
-          }}
-          onLogout={handleAdminLogout}
-        />
-      )}
-
-      {view === "job-candidates" && (
-        <JobCandidates
-          jobId={adminActiveJobId}
-          onBack={() => navigate("admin-dashboard")}
-          onOpenCandidate={(id) => setDrawerStudentId(id)}
-        />
-      )}
-
-      {view === "job-create" && (
-        <JobCreate onBack={() => navigate("admin-dashboard")} onPublished={() => navigate("admin-dashboard")} />
-      )}
-
-      <CandidateDrawer student={drawerStudent} job={drawerJob} onClose={() => setDrawerStudentId(null)} />
+      <CandidateDrawer student={drawerStudent} job={null} onClose={() => setDrawerStudentId(null)} />
     </div>
   );
 }

@@ -14,6 +14,8 @@
     "db:seed": "node src/db/seed.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1087.0",
+    "@aws-sdk/client-ses": "^3.1087.0",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.7.0",
     "cookie-parser": "^1.4.6",

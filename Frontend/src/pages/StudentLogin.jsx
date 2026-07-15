@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { studentLogin } from "../api/apiClient";
 
-export default function StudentLogin({ onLoggedIn, onGoToRegister }) {
+export default function StudentLogin({ onLoggedIn }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -15,8 +18,10 @@ export default function StudentLogin({ onLoggedIn, onGoToRegister }) {
     setSubmitting(true);
     setError(null);
     try {
-      const { account } = await studentLogin(email, password);
-      onLoggedIn(account);
+      const profile = await studentLogin(email, password);
+      onLoggedIn(profile);
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || "Couldn't sign in. Check your credentials and try again.");
     } finally {
@@ -35,6 +40,9 @@ export default function StudentLogin({ onLoggedIn, onGoToRegister }) {
         <label className="text-[13px] text-inksoft block mb-1.5">Email</label>
         <input
           type="email"
+          name="email"
+          id="email"
+          autoComplete="email"
           className="field-input mb-4"
           placeholder="you@email.com"
           value={email}
@@ -43,6 +51,9 @@ export default function StudentLogin({ onLoggedIn, onGoToRegister }) {
         <label className="text-[13px] text-inksoft block mb-1.5">Password</label>
         <input
           type="password"
+          name="password"
+          id="password"
+          autoComplete="current-password"
           className="field-input mb-2"
           placeholder="••••••••"
           value={password}
@@ -57,11 +68,11 @@ export default function StudentLogin({ onLoggedIn, onGoToRegister }) {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
 
-        <p className="text-[13px] text-inksoft text-center mt-5">
-          New here?{" "}
-          <button onClick={onGoToRegister} className="text-primary font-medium underline underline-offset-2">
-            Create an account
-          </button>
+        <p className="text-center text-sm text-inksoft mt-6">
+          Don't have an account?{" "}
+          <Link to="/student-register" className="text-ink font-medium hover:underline">
+            Register here
+          </Link>
         </p>
       </div>
     </div>

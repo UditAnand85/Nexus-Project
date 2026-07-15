@@ -10,3 +10,4 @@ export * from './admin.js';
 export * from './jobs.js';
 export * from './students.js';
 export * from './shortlisted.js';
+export * from './assessments.js';
