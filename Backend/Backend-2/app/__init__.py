@@ -26,7 +26,7 @@ def create_app(config_class=None) -> Flask:
         return {
             "success": True,
             "status": "healthy",
-            "service": "HireFlowAI Backend-2 (AI Resume Service)",
+            "service": "RecruitAI Backend-2 (AI Resume Service)",
         }, 200
 
     # ─── Error Handlers ───────────────────────────────────────────────────────

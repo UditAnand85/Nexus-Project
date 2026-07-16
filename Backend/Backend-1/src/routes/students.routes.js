@@ -19,11 +19,6 @@ const router = Router();
 // multipart/form-data fields: full_name, email, phone, resume (file)
 router.post('/apply/:jobId', uploadResume, studentsController.submitApplication);
 
-// POST /api/v1/students/:id/video
-// Stub endpoint to accept evaluation video introduction uploads
-router.post('/:id/video', (req, res) => {
-  res.status(200).json({ success: true, message: 'Video uploaded successfully (stub).' });
-});
 
 // GET /api/v1/students — Get all students (admin only)
 router.get('/', authenticateAdmin, allowAnyAdmin, studentsController.getAllStudents);

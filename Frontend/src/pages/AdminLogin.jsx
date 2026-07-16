@@ -70,7 +70,7 @@ export default function AdminLogin({ onLogin }) {
         <input
           type="email"
           className="field-input mb-4"
-          placeholder="admin@hireflowai.com"
+          placeholder="admin@recruitai.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}

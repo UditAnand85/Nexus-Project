@@ -5,10 +5,9 @@ import { APP_NAME } from "../constants/roles";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
 
 const STAGES = [
-  { key: "video",     step: 1, label: "Video Introduction", icon: "🎥", description: "Record a short video introducing yourself and your background." },
-  { key: "aptitude",  step: 2, label: "Aptitude Test",      icon: "🧠", description: "Assess your logical reasoning, numerical, and verbal abilities." },
-  { key: "technical", step: 3, label: "Technical Assessment", icon: "💻", description: "Demonstrate your role-specific technical knowledge and skills." },
-  { key: "final",     step: 4, label: "Final Review",       icon: "⭐", description: "A panel review of your overall performance across all rounds." },
+  { key: "aptitude",  step: 1, label: "Aptitude Test",      icon: "🧠", description: "Assess your logical reasoning, numerical, and verbal abilities." },
+  { key: "technical", step: 2, label: "Technical Assessment", icon: "💻", description: "Demonstrate your role-specific technical knowledge and skills." },
+  { key: "final",     step: 3, label: "Final Review",       icon: "⭐", description: "A panel review of your overall performance across all rounds." },
 ];
 
 export default function EvaluationLanding() {
@@ -104,7 +103,7 @@ export default function EvaluationLanding() {
           </h1>
           <p className="text-inksoft text-[15px] leading-relaxed">
             You've been shortlisted for <strong className="text-ink">{job?.job_title}</strong>.
-            Complete all four stages below to proceed in the hiring process.
+            Complete all stages below to proceed in the hiring process.
           </p>
         </div>
 
@@ -181,7 +180,6 @@ export default function EvaluationLanding() {
             <div className="text-sm font-medium text-ink mb-1">Important Instructions</div>
             <ul className="text-xs text-inksoft leading-relaxed space-y-1">
               <li>• Complete all stages in order — you cannot skip ahead.</li>
-              <li>• Ensure you are in a quiet, well-lit environment for your video introduction.</li>
               <li>• Once a stage is started, it must be completed in a single session.</li>
               <li>• Your evaluation link is personal. Do not share it with anyone.</li>
             </ul>

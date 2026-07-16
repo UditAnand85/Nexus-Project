@@ -209,7 +209,7 @@ def start_consumer() -> None:
         Consumer loop logic is intentionally left as a skeleton.
     """
     logger.info("=" * 60)
-    logger.info("  HireFlowAI Backend-2 — Queue Consumer Starting")
+    logger.info("  RecruitAI Backend-2 — Queue Consumer Starting")
     logger.info("=" * 60)
     logger.info(f"  Queue     : {QUEUE_NAME}")
     logger.info(f"  Redis     : {REDIS_URL}")

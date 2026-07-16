@@ -15,11 +15,3 @@ export const aptitudeQuestions = pgTable('aptitude_questions', {
   created_at: timestamp('created_at').defaultNow().notNull(),
 });
 
-export const videoQuestions = pgTable('video_questions', {
-  question_id: uuid('question_id').defaultRandom().primaryKey(),
-  job_id: uuid('job_id')
-    .notNull()
-    .references(() => jobs.job_id),
-  question: text('question').notNull(),
-  created_at: timestamp('created_at').defaultNow().notNull(),
-});

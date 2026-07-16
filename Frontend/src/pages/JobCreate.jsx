@@ -87,7 +87,7 @@ export default function JobCreate({ onBack, onPublished }) {
         </Field>
 
         <Field label="evaluation_prompt">
-          <textarea rows={2} className="field-input" placeholder="What should the AI weigh when scoring resumes and videos for this role?" value={form.evaluation_prompt} onChange={update("evaluation_prompt")} />
+          <textarea rows={2} className="field-input" placeholder="What should the AI weigh when scoring resumes for this role?" value={form.evaluation_prompt} onChange={update("evaluation_prompt")} />
         </Field>
 
         <Field label="email_template">

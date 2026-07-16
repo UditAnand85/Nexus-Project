@@ -106,11 +106,9 @@ export const submitApplication = async ({
 
   // 5. Push job to Queue for background processing
   try {
-    const base64Resume = resumeBuffer.toString('base64');
-
     await resumeQueue.add('parse_resume', {
       student_id: newStudent.student_id,
-      base64Resume,
+      resumeUrl: resume_url,
       mimeType: resumeMimeType,
       originalName: resumeOriginalName,
       formDataParams: {
@@ -125,7 +123,7 @@ export const submitApplication = async ({
       }
     });
 
-    console.log(`[Service] Pushed resume to queue for student ${newStudent.student_id}`);
+    console.log(`[Service] Pushed resume URL to queue for student ${newStudent.student_id}`);
   } catch (error) {
     console.error(`[Service] Failed to push to queue for student ${newStudent.student_id}`, error);
     // Note: We swallow the error here so the user still gets a success response,
@@ -175,8 +173,6 @@ export const getStudentById = async (studentId) => {
       application_status: students.application_status,
       created_at: students.created_at,
       shortlisted_id: shortlistedStudents.shortlisted_id,
-      video_url: shortlistedStudents.video_url,
-      video_score: shortlistedStudents.video_score,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
       recommendation: shortlistedStudents.recommendation,
@@ -225,39 +221,20 @@ export const retryFailedResumes = async () => {
       const urlParts = student.resume_url.split('/');
       const fileName = urlParts[urlParts.length - 1];
 
-      // 3. Download from S3
-      const command = new GetObjectCommand({
-        Bucket: env.AWS_S3_BUCKET_NAME,
-        Key: fileName,
-      });
-
-      let response;
-      try {
-        response = await s3Client.send(command);
-      } catch (error) {
-        console.error(`[Service] Failed to download resume for student ${student.student_id}:`, error);
-        continue;
-      }
-
-      // 4. Convert stream to base64
-      const streamToBuffer = async (stream) => {
-        return new Promise((resolve, reject) => {
-          const chunks = [];
-          stream.on('data', (chunk) => chunks.push(chunk));
-          stream.on('error', reject);
-          stream.on('end', () => resolve(Buffer.concat(chunks)));
-        });
+      // Determine MIME type based on extension
+      const getMimeType = (name) => {
+        const ext = name.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return 'application/pdf';
+        if (ext === 'docx') return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        if (ext === 'doc') return 'application/msword';
+        return 'application/octet-stream';
       };
-      
-      const buffer = await streamToBuffer(response.Body);
-      const base64Resume = buffer.toString('base64');
-      
-      const mimeType = response.ContentType || 'application/pdf';
+      const mimeType = getMimeType(fileName);
 
       // 5. Push back to Queue
       await resumeQueue.add('parse_resume', {
         student_id: student.student_id,
-        base64Resume,
+        resumeUrl: student.resume_url,
         mimeType: mimeType,
         originalName: fileName, 
         formDataParams: {
@@ -272,7 +249,7 @@ export const retryFailedResumes = async () => {
         }
       });
       
-      console.log(`[Service] Re-queued resume for student ${student.student_id}`);
+      console.log(`[Service] Re-queued resume URL for student ${student.student_id}`);
       count++;
     } catch (err) {
       console.error(`[Service] Error processing failed resume for student ${student.student_id}:`, err);

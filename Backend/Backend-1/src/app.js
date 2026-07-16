@@ -33,7 +33,7 @@ app.get('/health', (_req, res) => {
   res.status(200).json({
     success: true,
     status: 'healthy',
-    service: 'HireFlowAI Backend-1',
+    service: 'RecruitAI Backend-1',
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
   });

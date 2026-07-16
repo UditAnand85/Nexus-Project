@@ -128,8 +128,6 @@ export const getMyApplications = async (email) => {
       created_at: students.created_at,
       job_id: students.job_id,
       job_title: jobs.job_title,
-      video_url: shortlistedStudents.video_url,
-      video_score: shortlistedStudents.video_score,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
       current_stage: shortlistedStudents.current_stage,

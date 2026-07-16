@@ -47,7 +47,7 @@ export const env = Object.freeze({
   INTERNAL_API_KEY: process.env.INTERNAL_API_KEY,
 
   // Seed values
-  SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || 'superadmin@hireflowai.com',
+  SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || 'superadmin@recruitai.com',
   SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD || 'Admin@123',
 
   // AWS S3

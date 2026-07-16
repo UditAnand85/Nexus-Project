@@ -75,6 +75,12 @@ class ResumeParseRequestSchema(Schema):
         metadata={"description": "Job posting description"},
     )
 
+    resume_url = fields.Str(
+        load_default=None,
+        allow_none=True,
+        metadata={"description": "URL to download the resume from AWS S3"},
+    )
+
 
 class QueueJobSchema(Schema):
     """

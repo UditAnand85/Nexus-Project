@@ -241,7 +241,7 @@ export const startEvaluation = async (jobId) => {
               <div style="width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
                 <span style="color: white; font-family: monospace; font-size: 11px; font-weight: 600;">RA</span>
               </div>
-              <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">HireFlowAI</span>
+              <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">RecruitAI</span>
             </div>
           </div>
 
@@ -254,10 +254,9 @@ export const startEvaluation = async (jobId) => {
           <div style="background: #f8f8f7; border: 1px solid #e5e5e3; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
             <p style="font-size: 13px; color: #888; margin: 0 0 12px; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em;">Your evaluation includes</p>
             <div style="display: flex; flex-direction: column; gap: 8px;">
-              <div style="font-size: 14px; color: #1a1a1a;">🎥 &nbsp;<strong>Step 1</strong> — Video Introduction</div>
-              <div style="font-size: 14px; color: #1a1a1a;">🧠 &nbsp;<strong>Step 2</strong> — Aptitude Test</div>
-              <div style="font-size: 14px; color: #1a1a1a;">💻 &nbsp;<strong>Step 3</strong> — Technical Assessment</div>
-              <div style="font-size: 14px; color: #1a1a1a;">⭐ &nbsp;<strong>Step 4</strong> — Final Review</div>
+              <div style="font-size: 14px; color: #1a1a1a;">🧠 &nbsp;<strong>Step 1</strong> — Aptitude Test</div>
+              <div style="font-size: 14px; color: #1a1a1a;">💻 &nbsp;<strong>Step 2</strong> — Technical Assessment</div>
+              <div style="font-size: 14px; color: #1a1a1a;">⭐ &nbsp;<strong>Step 3</strong> — Final Review</div>
             </div>
           </div>
 
@@ -310,8 +309,6 @@ export const getRankedStudents = async (jobId) => {
       application_status: students.application_status,
       created_at: students.created_at,
       shortlisted_id: shortlistedStudents.shortlisted_id,
-      video_url: shortlistedStudents.video_url,
-      video_score: shortlistedStudents.video_score,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
       recommendation: shortlistedStudents.recommendation,

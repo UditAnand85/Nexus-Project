@@ -31,7 +31,7 @@ router.get('/me/applications', authenticateToken, getMyApplications);
 router.get('/', (_req, res) => {
   res.json({
     success: true,
-    message: 'HireFlowAI Backend-1 API',
+    message: 'RecruitAI Backend-1 API',
     version: 'v1',
     endpoints: {
       auth: {

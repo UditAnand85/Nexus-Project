@@ -105,7 +105,7 @@ export const processResult = async ({
     if (existing.length === 0) {
       await db.insert(shortlistedStudents).values({
         student_id,
-        current_stage: 'Video',
+        current_stage: 'Aptitude',
         updated_at: new Date(),
       });
     }

@@ -18,7 +18,7 @@ export default function CareerPortal() {
           Work that gets evaluated fairly, and quickly.
         </h1>
         <p className="max-w-[520px] text-inksoft text-base mt-4 leading-relaxed">
-          Apply once. Your resume, a short video, and a short skills check decide what happens next —
+          Apply once. Your resume and a short skills check decide what happens next —
           no waiting weeks for a reply.
         </p>
       </div>

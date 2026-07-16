@@ -40,7 +40,7 @@ async function resetBackendJob() {
     
     await db.insert(shortlistedStudents).values({
       student_id: newStudent.student_id,
-      current_stage: 'Video',
+      current_stage: 'Aptitude',
     });
     console.log('Created dummy application and shortlisted it.');
   } else {
@@ -54,7 +54,7 @@ async function resetBackendJob() {
     if (existing.length === 0) {
       await db.insert(shortlistedStudents).values({
         student_id: student.student_id,
-        current_stage: 'Video',
+        current_stage: 'Aptitude',
       });
       console.log('Inserted into shortlisted_students!');
     } else {

@@ -29,10 +29,10 @@ export const applicationStatusEnum = pgEnum('application_status', [
  * Created when a candidate submits the application form.
  *
  * NOTE on resume_url:
- *   The resume file is NOT stored permanently. It is transferred from
- *   Backend-1 → Backend-2 via BullMQ as a base64-encoded payload.
+ *   The resume file is uploaded to S3 first, and the public URL is stored in
+ *   resume_url. This URL is then passed from Backend-1 → Backend-2 via BullMQ
+ *   and HTTP, and Backend-2 retrieves the resume directly from this URL.
  *   Backend-2 returns parsed data, which is stored in parsed_resume_json.
- *   resume_url is kept in the schema for compliance but will remain null.
  */
 export const students = pgTable('students', {
   student_id: uuid('student_id').defaultRandom().primaryKey(),

@@ -13,19 +13,15 @@ const worker = new Worker(
   async (job) => {
     const {
       student_id,
-      base64Resume,
+      resumeUrl,
       mimeType,
       originalName,
       formDataParams,
     } = job.data;
 
-    console.log(`[Worker] Processing resume for student: ${student_id}`);
+    console.log(`[Worker] Processing resume URL for student: ${student_id}`);
 
     try {
-      // 1. Reconstruct Resume Blob from base64
-      const resumeBuffer = Buffer.from(base64Resume, 'base64');
-      const resumeBlob = new Blob([resumeBuffer], { type: mimeType });
-
       // 2. Construct FormData for Backend-2
       const formData = new FormData();
       formData.append('name', formDataParams.full_name);
@@ -37,7 +33,9 @@ const worker = new Worker(
       formData.append('job_title', formDataParams.job_title || '');
       formData.append('job_description', formDataParams.job_description || '');
       
-      formData.append('resume', resumeBlob, originalName);
+      if (resumeUrl) {
+        formData.append('resume_url', resumeUrl);
+      }
 
       const backend2Url = env.BACKEND2_URL || 'http://127.0.0.1:5001';
       console.log(`[Worker] Sending resume to Backend-2 at ${backend2Url}/api/v1/resume/parse`);

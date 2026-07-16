@@ -1,12 +1,12 @@
-# HireFlow AI - Project Architecture & Documentation
+# RecruitAI - Project Architecture & Documentation
 
-This document serves as a comprehensive reference guide to the HireFlow AI (Nexus-Project) architecture, folder structure, and key responsibilities of each module. This is designed to help you quickly onboard new developers or explain the project structure seamlessly.
+This document serves as a comprehensive reference guide to the RecruitAI (Nexus-Project) architecture, folder structure, and key responsibilities of each module. This is designed to help you quickly onboard new developers or explain the project structure seamlessly.
 
 ---
 
 ## 1. High-Level Architecture
 
-HireFlow AI is a robust **3-tier application** split into a React Frontend, a Node.js Main Backend, and a Python AI Microservice.
+RecruitAI is a robust **3-tier application** split into a React Frontend, a Node.js Main Backend, and a Python AI Microservice.
 
 ```mermaid
 graph TD

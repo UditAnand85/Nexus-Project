@@ -91,7 +91,7 @@ const seedEmployees = async () => {
   const employees = [
     {
       full_name: 'Jane HR',
-      email: 'jane.hr@hireflowai.com',
+      email: 'jane.hr@recruitai.com',
       password: hashedPassword,
       role_key: 'R002', // HR Manager
       department: 'Human Resources',
@@ -100,7 +100,7 @@ const seedEmployees = async () => {
     },
     {
       full_name: 'Mark Hiring',
-      email: 'mark.hiring@hireflowai.com',
+      email: 'mark.hiring@recruitai.com',
       password: hashedPassword,
       role_key: 'R003', // Hiring Manager
       department: 'Engineering',

@@ -56,25 +56,53 @@ def parse_resume():
             "resume_cutoff_score": request.form.get("resume_cutoff_score", 0),
             "job_title": request.form.get("job_title", ""),
             "job_description": request.form.get("job_description", ""),
+            "resume_url": request.form.get("resume_url"),
         }
 
         validated_data = _request_schema.load(form_data)
 
-        # ── Validate resume file ───────────────────────────────────────────────
+        # ── Validate resume source ──────────────────────────────────────────────
         resume_file = request.files.get("resume")
-        if not resume_file:
-            return jsonify({"success": False, "message": "Resume file is required."}), 400
+        resume_url = validated_data.get("resume_url")
 
-        allowed_mimes = [
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ]
-        if resume_file.content_type not in allowed_mimes:
-            return jsonify({
-                "success": False,
-                "message": "Invalid file type. Only PDF, DOC, and DOCX are accepted.",
-            }), 400
+        if not resume_file and not resume_url:
+            return jsonify({"success": False, "message": "Either resume file or resume_url is required."}), 400
+
+        file_bytes = None
+        filename = None
+
+        if resume_file:
+            allowed_mimes = [
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ]
+            if resume_file.content_type not in allowed_mimes:
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid file type. Only PDF, DOC, and DOCX are accepted.",
+                }), 400
+            file_bytes = resume_file.read()
+            filename = resume_file.filename
+        elif resume_url:
+            import requests
+            try:
+                response = requests.get(resume_url, timeout=15)
+                response.raise_for_status()
+                file_bytes = response.content
+                filename = resume_url.split("/")[-1]
+            except Exception as download_error:
+                return jsonify({
+                    "success": False,
+                    "message": f"Failed to download resume from URL: {str(download_error)}"
+                }), 400
+
+            filename_lower = filename.lower()
+            if not (filename_lower.endswith(".pdf") or filename_lower.endswith(".docx") or filename_lower.endswith(".doc")):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid file type from URL. Only PDF, DOC, and DOCX are accepted.",
+                }), 400
 
         # ── Run the LangGraph Agent ──────────
         from app.services.agent import process_resume_with_agent

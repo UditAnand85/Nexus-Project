@@ -7,7 +7,7 @@ const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
   console.log('\n╔══════════════════════════════════════════════════╗');
-  console.log('║        HireFlowAI — Backend-1 Started! 🚀        ║');
+  console.log('║        RecruitAI — Backend-1 Started! 🚀         ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log(`\n📡  Server    : http://localhost:${PORT}`);
   console.log(`📋  API Base  : http://localhost:${PORT}/api/v1`);

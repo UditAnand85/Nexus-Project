@@ -7,7 +7,7 @@ app = create_app(config_class)
 
 if __name__ == "__main__":
     print("\n╔══════════════════════════════════════════════════════╗")
-    print("║     HireFlowAI — Backend-2 (AI Service) Started! 🤖  ║")
+    print("║     RecruitAI — Backend-2 (AI Service) Started! 🤖   ║")
     print("╚══════════════════════════════════════════════════════╝")
     print(f"\n📡  Server    : http://localhost:{config_class.PORT}")
     print(f"📋  API Base  : http://localhost:{config_class.PORT}/api/v1")

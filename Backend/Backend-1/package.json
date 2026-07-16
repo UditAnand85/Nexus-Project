@@ -1,7 +1,7 @@
 {
-  "name": "hireflowai-backend-1",
+  "name": "recruitai-backend-1",
   "version": "1.0.0",
-  "description": "HireFlowAI Backend-1: Authentication, Job Management & Queue Service (Express.js)",
+  "description": "RecruitAI Backend-1: Authentication, Job Management & Queue Service (Express.js)",
   "type": "module",
   "main": "server.js",
   "scripts": {

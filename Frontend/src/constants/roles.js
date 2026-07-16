@@ -7,7 +7,6 @@ export const ADMIN_TABS = [
 
 export const EVAL_STAGES = [
   { key: "resume", label: "Resume\nScreened" },
-  { key: "video", label: "Video\nIntro" },
   { key: "aptitude", label: "Aptitude\nTest" },
   { key: "final", label: "Final\nDecision" },
 ];

@@ -5,7 +5,7 @@
  * The resume screening / shortlisting pipeline runs in the background.
  * If shortlisted, the candidate will be contacted via email for next steps.
  *
- * Video intro + aptitude test stages have been removed from this view —
+ * Aptitude test stages have been removed from this view —
  * they will be communicated via email to shortlisted candidates only.
  */
 

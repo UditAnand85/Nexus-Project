@@ -164,7 +164,7 @@ function AddEmployeeModal({ onCreated, onClose }) {
             <input className="field-input" placeholder="Priya Nair" value={form.full_name} onChange={update("full_name")} />
           </Field>
           <Field label="Email">
-            <input type="email" className="field-input" placeholder="priya@hireflowai.com" value={form.email} onChange={update("email")} />
+            <input type="email" className="field-input" placeholder="priya@recruitai.com" value={form.email} onChange={update("email")} />
           </Field>
           <Field label="Department (optional)">
             <input className="field-input" placeholder="Talent Acquisition" value={form.department} onChange={update("department")} />

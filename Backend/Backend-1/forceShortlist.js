@@ -22,7 +22,7 @@ async function forceShortlist() {
   if (existing.length === 0) {
     await db.insert(shortlistedStudents).values({
       student_id: student.student_id,
-      current_stage: 'Video',
+      current_stage: 'Aptitude',
     });
     console.log('Inserted into shortlisted_students!');
   } else {

@@ -13,7 +13,7 @@ async function testSES() {
     Source: env.AWS_SES_FROM_EMAIL,
     Destination: { ToAddresses: [toEmail] },
     Message: {
-      Subject: { Data: 'Test Email from HireFlowAI' },
+      Subject: { Data: 'Test Email from RecruitAI' },
       Body: { Text: { Data: 'This is a test email to verify SES setup.' } },
     },
   };

@@ -1,4 +1,4 @@
-# HireFlowAI — Backend-1
+# RecruitAI — Backend-1
 
 > **Express.js** backend handling Authentication, Database Operations, and Queue Management.
 
@@ -47,7 +47,7 @@ npm run db:migrate
 ```bash
 npm run db:seed
 # Creates 4 default roles + Super Admin account
-# Default Super Admin: superadmin@hireflowai.com / Admin@123
+# Default Super Admin: superadmin@recruitai.com / Admin@123
 ```
 
 ### 5. Start Development Server

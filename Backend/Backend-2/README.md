@@ -1,4 +1,4 @@
-# HireFlowAI — Backend-2 (AI Resume Service)
+# RecruitAI — Backend-2 (AI Resume Service)
 
 > **Flask (Python)** backend skeleton for AI-powered resume parsing and ATS scoring.
 > All AI logic is pending implementation — this is a structured placeholder.

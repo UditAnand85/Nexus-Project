@@ -55,12 +55,7 @@ export async function submitApplication(formFields, resumeFile, account) {
   return res.data;
 }
 
-export async function uploadEvaluationVideo(student_id, videoBlob) {
-  const body = new FormData();
-  body.append("video", videoBlob, `${student_id}_intro.webm`);
-  const res = await apiFetch(`/students/${student_id}/video`, { method: "POST", body }, "student");
-  return res;
-}
+
 
 // ---- Admin auth ----
 
@@ -167,7 +162,7 @@ export async function deleteJob(job_id) {
 export const STAGE_LABEL = {
   final_interview: { cls: "invited", label: "Final interview" },
   waitlisted: { cls: "wait", label: "Waitlist" },
-  awaiting_video: { cls: "review", label: "Awaiting video" },
+
   rejected: { cls: "review", label: "Rejected" },
   under_review: { cls: "review", label: "Under review" },
   Applied: { cls: "review", label: "Applied" },
