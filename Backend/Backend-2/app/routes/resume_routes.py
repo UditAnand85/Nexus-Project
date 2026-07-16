@@ -107,8 +107,7 @@ def parse_resume():
         # ── Run the LangGraph Agent ──────────
         from app.services.agent import process_resume_with_agent
         
-        file_bytes = resume_file.read()
-        filename = resume_file.filename
+
         
         final_state = process_resume_with_agent(
             name=validated_data["name"],

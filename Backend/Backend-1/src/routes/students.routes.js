@@ -26,10 +26,11 @@ router.get('/', authenticateAdmin, allowAnyAdmin, studentsController.getAllStude
 // GET /api/v1/students/job/:jobId — Get all students for a specific job
 router.get('/job/:jobId', authenticateAdmin, allowAnyAdmin, studentsController.getStudentsByJob);
 
+// POST /api/v1/students/retry-failed — Retry un-processed resumes (Disaster Recovery)
+// IMPORTANT: Must be declared BEFORE /:id to avoid Express matching "retry-failed" as a UUID.
+router.post('/retry-failed', authenticateAdmin, allowAnyAdmin, studentsController.retryFailedResumes);
+
 // GET /api/v1/students/:id — Get a specific student record
 router.get('/:id', authenticateAdmin, allowAnyAdmin, studentsController.getStudentById);
-
-// POST /api/v1/students/retry-failed — Retry un-processed resumes (Disaster Recovery)
-router.post('/retry-failed', authenticateAdmin, allowAnyAdmin, studentsController.retryFailedResumes);
 
 export default router;

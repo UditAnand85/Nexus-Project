@@ -58,4 +58,8 @@ export const env = Object.freeze({
 
   // AWS SES (Email)
   AWS_SES_FROM_EMAIL: process.env.AWS_SES_FROM_EMAIL,
+
+  // Gemini AI (Question Bank Generation) — optional, generation silently skipped if missing
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  GROQ_API_KEY: process.env.GROQ_API_KEY || '',
 });

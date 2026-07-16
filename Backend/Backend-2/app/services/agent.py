@@ -127,14 +127,18 @@ def check_scores_node(state: ResumeState) -> dict:
     """
     
     try:
-        if not client:
-            raise ValueError("Gemini API key is not configured.")
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
+        if not groq_client:
+            raise ValueError("Groq API key is not configured.")
+        
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
         )
         
-        score_str = response.text.strip()
+        score_str = completion.choices[0].message.content.strip()
         import re
         match = re.search(r'\d+(\.\d+)?', score_str)
         if match:

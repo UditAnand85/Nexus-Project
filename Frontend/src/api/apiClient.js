@@ -169,9 +169,35 @@ export const STAGE_LABEL = {
   Shortlisted: { cls: "invited", label: "Shortlisted" },
   Rejected: { cls: "review", label: "Rejected" },
   Hired: { cls: "invited", label: "Hired" },
+  Completed: { cls: "invited", label: "Evaluated" },
+  Pending: { cls: "review", label: "Pending evaluation" }
 };
 
 export async function startEvaluation(job_id) {
   const res = await apiFetch(`/jobs/${job_id}/start-evaluation`, { method: "PATCH" }, "admin");
+  return res.data;
+}
+
+// ---- Evaluation Quiz ----
+
+/**
+ * Fetch quiz questions for a candidate using their evaluation JWT token.
+ * Returns { aptitude: [...], technical: [...] } — no correct_answer included.
+ */
+export async function getEvaluationQuestions(token) {
+  const res = await apiFetch(`/evaluate/questions?token=${encodeURIComponent(token)}`);
+  return res.data;
+}
+
+/**
+ * Submit evaluation answers and receive the score breakdown.
+ * @param {string} token - evaluation JWT
+ * @param {Array<{question_id, type, selected_option}>} answers
+ */
+export async function submitEvaluation(token, answers) {
+  const res = await apiFetch(
+    `/evaluate/submit?token=${encodeURIComponent(token)}`,
+    { method: "POST", body: JSON.stringify({ answers }) }
+  );
   return res.data;
 }

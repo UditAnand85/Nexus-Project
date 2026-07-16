@@ -6,6 +6,8 @@ import { jobs, students, shortlistedStudents, admin } from '../db/schema/index.j
 import { AppError } from '../middleware/errorHandler.js';
 import { sesClient } from '../config/ses.js';
 import { env } from '../config/env.js';
+import { deleteJobQuestions } from './questions.service.js';
+import { questionsQueue } from '../queues/questions.queue.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
 
@@ -116,6 +118,15 @@ export const createJob = async (data, adminId) => {
     })
     .returning();
 
+  // Enqueue question generation — runs in background worker with retries.
+  // Does NOT block or fail the job creation response.
+  await questionsQueue.add('generate_questions', {
+    jobId: newJob.job_id,
+    jobTitle: job_title,
+    jobDescription: job_description,
+  });
+  console.log(`[Jobs] Queued question generation for job ${newJob.job_id} ("${job_title}")`);
+
   return newJob;
 };
 
@@ -146,7 +157,10 @@ export const deleteJob = async (jobId) => {
     throw new AppError('Cannot delete a job that is still open. Please close shortlisting first.', 400);
   }
 
-  // 1. Find all students for this job
+  // 1. Delete AI-generated technical questions for this job
+  await deleteJobQuestions(jobId);
+
+  // 2. Find all students for this job
   const jobStudents = await db
     .select({ id: students.student_id })
     .from(students)
@@ -154,15 +168,15 @@ export const deleteJob = async (jobId) => {
     
   const studentIds = jobStudents.map(s => s.id);
 
-  // 2. Delete from shortlisted_students if any exist
+  // 3. Delete from shortlisted_students if any exist
   if (studentIds.length > 0) {
     await db.delete(shortlistedStudents).where(inArray(shortlistedStudents.student_id, studentIds));
     
-    // 3. Delete from students
+    // 4. Delete from students
     await db.delete(students).where(eq(students.job_id, jobId));
   }
 
-  // 4. Finally delete the job
+  // 5. Finally delete the job
   await db.delete(jobs).where(eq(jobs.job_id, jobId));
 };
 

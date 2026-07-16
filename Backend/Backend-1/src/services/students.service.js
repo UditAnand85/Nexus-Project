@@ -76,7 +76,7 @@ export const submitApplication = async ({
   try {
     const fileHash = crypto.createHash('sha256').update(resumeBuffer).digest('hex');
     const fileExtension = resumeOriginalName.split('.').pop();
-    const fileName = `${fileHash}.${fileExtension}`;
+    const fileName = `resumes/${fileHash}.${fileExtension}`;
     
     const command = new PutObjectCommand({
       Bucket: env.AWS_S3_BUCKET_NAME,
@@ -85,26 +85,40 @@ export const submitApplication = async ({
       ContentType: resumeMimeType,
     });
 
-    try {
-      await s3Client.send(command);
-      
-      // Construct public URL
-      resume_url = `https://${env.AWS_S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileName}`;
+    await s3Client.send(command);
+    
+    // Construct public URL
+    resume_url = `https://${env.AWS_S3_BUCKET_NAME}.s3.${env.AWS_REGION}.amazonaws.com/${fileName}`;
 
-      // Update student record with resume_url
-      await db.update(students)
-        .set({ resume_url })
-        .where(eq(students.student_id, newStudent.student_id));
-        
-      newStudent.resume_url = resume_url;
-    } catch (uploadError) {
-      console.error('[Service] AWS S3 upload error:', uploadError);
-    }
-  } catch (err) {
-    console.error('[Service] Failed to upload resume to S3:', err);
+    // Update student record with resume_url
+    await db.update(students)
+      .set({ resume_url })
+      .where(eq(students.student_id, newStudent.student_id));
+      
+    newStudent.resume_url = resume_url;
+    console.log(`[Service] Resume uploaded to S3 for student ${newStudent.student_id}: ${resume_url}`);
+  } catch (uploadError) {
+    console.error(
+      `[Service] ⚠️  S3 upload FAILED for student ${newStudent.student_id}. ` +
+      `Bucket: "${env.AWS_S3_BUCKET_NAME}", Region: "${env.AWS_REGION}". ` +
+      `Error: ${uploadError.message}. ` +
+      `Resume will NOT be queued for AI scoring.`
+    );
+    // Return early success (application was saved) but without AI scoring
+    return {
+      student_id: newStudent.student_id,
+      full_name: newStudent.full_name,
+      email: newStudent.email,
+      job_id: newStudent.job_id,
+      resume_url: null,
+      resume_score: null,
+      parsed_resume_json: null,
+      application_status: newStudent.application_status,
+      created_at: newStudent.created_at,
+    };
   }
 
-  // 5. Push job to Queue for background processing
+  // 5. Push job to Queue for background processing (only if S3 upload succeeded)
   try {
     await resumeQueue.add('parse_resume', {
       student_id: newStudent.student_id,

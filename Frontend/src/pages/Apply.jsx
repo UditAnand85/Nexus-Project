@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { submitApplication, getJob } from "../api/apiClient";
 import { validateResumeFile } from "../utils/format";
@@ -15,6 +15,17 @@ export default function Apply({ account, onSubmitted }) {
     email: account?.email || "",
     phone: account?.phone || "",
   });
+
+  useEffect(() => {
+    if (account) {
+      setForm((prev) => ({
+        full_name: prev.full_name || account.full_name || "",
+        email: prev.email || account.email || "",
+        phone: prev.phone || account.phone || "",
+      }));
+    }
+  }, [account]);
+
   const [file, setFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { env } from './src/config/env.js';
 import app from './src/app.js';
 import './src/workers/resume.worker.js';
+import './src/workers/questions.worker.js';
 
 const PORT = env.PORT;
 

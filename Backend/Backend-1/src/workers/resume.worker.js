@@ -22,6 +22,15 @@ const worker = new Worker(
     console.log(`[Worker] Processing resume URL for student: ${student_id}`);
 
     try {
+      // Guard: if the S3 upload failed at submission time, resume_url will be null
+      if (!resumeUrl) {
+        throw new Error(
+          `No resume URL available for student ${student_id}. ` +
+          `The S3 upload likely failed at application time (check S3 bucket config). ` +
+          `Cannot process without a resume.`
+        );
+      }
+
       // 2. Construct FormData for Backend-2
       const formData = new FormData();
       formData.append('name', formDataParams.full_name);
@@ -32,10 +41,7 @@ const worker = new Worker(
       formData.append('resume_cutoff_score', (formDataParams.resume_cutoff_score || 0).toString());
       formData.append('job_title', formDataParams.job_title || '');
       formData.append('job_description', formDataParams.job_description || '');
-      
-      if (resumeUrl) {
-        formData.append('resume_url', resumeUrl);
-      }
+      formData.append('resume_url', resumeUrl);
 
       const backend2Url = env.BACKEND2_URL || 'http://127.0.0.1:5001';
       console.log(`[Worker] Sending resume to Backend-2 at ${backend2Url}/api/v1/resume/parse`);
