@@ -22,16 +22,16 @@ export default function Navbar({ isStudentAuthed, isAdminAuthed, onNavigate }) {
   const isAdminSection = view.startsWith("/admin");
 
   return (
-    <div className="flex items-center justify-between px-8 py-5 border-b border-line bg-paper sticky top-0 z-50">
+    <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-line bg-paper sticky top-0 z-50">
       <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNavigate("/")}>
         <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center text-white font-mono font-semibold text-[13px]">
           RA
         </div>
-        <div className="font-serif font-semibold text-[19px]">{APP_NAME}</div>
+        <div className="font-serif font-semibold text-lg md:text-[19px]">{APP_NAME}</div>
       </div>
 
       {/* Right nav */}
-      <div className="flex gap-1.5 items-center">
+      <div className="flex gap-1 md:gap-1.5 items-center">
         <button
           onClick={() => onNavigate("/")}
           className={`px-4 py-2 text-sm rounded-full transition ${

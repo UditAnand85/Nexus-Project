@@ -74,15 +74,15 @@ export default function Apply({ account, onSubmitted }) {
   if (!job) return null;
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <button onClick={() => navigate(`/job/${job.job_id}`)} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7">
+    <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
+      <button onClick={() => navigate(`/job/${job.job_id}`)} className="font-mono text-[10px] md:text-xs text-inksoft flex items-center gap-1.5 mb-7">
         ← Back to role
       </button>
-      <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">Step 1 of 3</span>
-      <h1 className="text-[30px] font-medium">Submit your application</h1>
-      <p className="text-inksoft mt-1.5 mb-8">Role: {job.job_title}</p>
+      <span className="font-mono text-[10px] md:text-xs uppercase tracking-wider text-inksoft block mb-3.5">Step 1 of 3</span>
+      <h1 className="text-2xl md:text-[30px] font-medium">Submit your application</h1>
+      <p className="text-inksoft mt-1.5 mb-8 text-sm md:text-base">Role: {job.job_title}</p>
 
-      <div className="bg-panel border border-line rounded-xl shadow-sm p-9 max-w-[560px] mt-6">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-5 sm:p-9 max-w-[560px] w-full mt-6">
         <Field label="Name" error={errors.full_name}>
           <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} />
         </Field>

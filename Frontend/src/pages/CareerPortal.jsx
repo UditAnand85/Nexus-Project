@@ -9,15 +9,15 @@ export default function CareerPortal() {
   const { data: jobs, loading, error, refetch } = useApi(() => getJobs(), []);
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <div className="mb-14">
-        <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">
+    <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
+      <div className="mb-10 md:mb-14">
+        <span className="font-mono text-[10px] md:text-xs uppercase tracking-wider text-inksoft block mb-3.5">
           Open roles · Updated today
         </span>
-        <h1 className="text-[44px] leading-[1.05] max-w-[640px] font-medium">
+        <h1 className="text-3xl md:text-[44px] leading-[1.1] md:leading-[1.05] max-w-[640px] font-medium">
           Work that gets evaluated fairly, and quickly.
         </h1>
-        <p className="max-w-[520px] text-inksoft text-base mt-4 leading-relaxed">
+        <p className="max-w-[520px] text-inksoft text-sm md:text-base mt-4 leading-relaxed">
           Apply once. Your resume and a short skills check decide what happens next —
           no waiting weeks for a reply.
         </p>

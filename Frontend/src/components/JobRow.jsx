@@ -19,7 +19,7 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
   return (
     <div
       onClick={onClick}
-      className={`grid grid-cols-[1fr_auto_auto_auto_auto] gap-6 items-center py-[22px] px-1 border-b border-line transition ${
+      className={`flex flex-col md:grid md:grid-cols-[1fr_auto_auto_auto_auto] gap-3 md:gap-6 items-start md:items-center py-4 md:py-[22px] px-1 border-b border-line transition ${
         onClick ? "cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm hover:px-4" : ""
       }`}
     >

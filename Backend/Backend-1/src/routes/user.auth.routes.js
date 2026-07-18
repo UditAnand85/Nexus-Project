@@ -5,20 +5,20 @@ import { authenticateToken } from '../middleware/auth.js';
 const router = Router();
 
 /**
- * User (Candidate) Authentication Routes
+ * User (Candidate) Auth Routes
  * Base: /api/v1/auth/user
  */
 
-// POST /api/v1/auth/user/register
+// POST /api/v1/auth/user/register — Register a new candidate
 router.post('/register', userAuthController.register);
 
-// POST /api/v1/auth/user/login
+// POST /api/v1/auth/user/login — Authenticate candidate
 router.post('/login', userAuthController.login);
 
-// POST /api/v1/auth/user/logout
+// POST /api/v1/auth/user/logout — Clear JWT cookie
 router.post('/logout', authenticateToken, userAuthController.logout);
 
-// GET /api/v1/auth/user/me  — Returns currently logged-in user's profile
+// GET /api/v1/auth/user/me — Get profile
 router.get('/me', authenticateToken, userAuthController.getMe);
 
 export default router;

@@ -29,16 +29,35 @@ export default function CandidateRow({ student, onClick, isEvaluated }) {
   return (
     <div
       onClick={onClick}
-      className={`grid ${isEvaluated ? 'grid-cols-[34px_1.4fr_90px_90px_110px]' : 'grid-cols-[34px_1.4fr_90px_110px]'} gap-3.5 items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm`}
+      className={`flex flex-col sm:grid ${isEvaluated ? 'sm:grid-cols-[34px_1.4fr_90px_90px_110px]' : 'sm:grid-cols-[34px_1.4fr_90px_110px]'} gap-2 sm:gap-3.5 items-start sm:items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm`}
     >
-      <span className="font-mono text-inksoft">{student.rank}</span>
-      <div>
+      <div className="flex gap-2 items-center sm:hidden">
+        <span className="font-mono text-inksoft">{student.rank}</span>
+        <div className="font-serif text-base font-medium">{student.full_name}</div>
+        <StagePill stage={stage} />
+      </div>
+
+      <span className="hidden sm:inline font-mono text-inksoft">{student.rank}</span>
+      <div className="hidden sm:block">
         <div className="font-serif text-base font-medium">{student.full_name}</div>
         <div className="text-xs text-inksoft mt-0.5">{student.student_id}</div>
       </div>
-      <ScoreCell value={student.resume_score} />
-      {isEvaluated && <ScoreCell value={student.final_score} />}
-      <StagePill stage={stage} />
+      
+      <div className="flex sm:contents gap-4 text-sm mt-1 sm:mt-0">
+        <div className="flex sm:contents gap-2">
+          <span className="sm:hidden text-inksoft">Resume:</span>
+          <ScoreCell value={student.resume_score} />
+        </div>
+        {isEvaluated && (
+          <div className="flex sm:contents gap-2">
+            <span className="sm:hidden text-inksoft">Final:</span>
+            <ScoreCell value={student.final_score} />
+          </div>
+        )}
+      </div>
+      <div className="hidden sm:block">
+        <StagePill stage={stage} />
+      </div>
     </div>
   );
 }

@@ -53,11 +53,11 @@ export default function AdminDashboard({ admin, onLogout }) {
   const visibleTabs = TABS.filter((t) => t.key !== "team" || isSuperAdmin);
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
+    <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
       {/* Header */}
-      <div className="flex justify-between items-end mb-8">
+      <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end gap-4 mb-8">
         <div>
-          <h1 className="text-[30px] font-medium">Recruitment overview</h1>
+          <h1 className="text-2xl md:text-[30px] font-medium">Recruitment overview</h1>
           <p className="text-inksoft text-[13px] mt-1">
             Signed in as <span className="font-medium text-ink">{admin?.full_name}</span>
             {" · "}<span className="font-mono text-[11px] px-1.5 py-0.5 bg-[#EEEFEC] rounded">{admin?.role_name || admin?.role_key}</span>
@@ -72,7 +72,7 @@ export default function AdminDashboard({ admin, onLogout }) {
       </div>
 
       {/* Stats */}
-      <div className="flex border border-line rounded-xl shadow-sm overflow-hidden mb-10 bg-panel">
+      <div className="flex flex-col md:flex-row border border-line rounded-xl shadow-sm overflow-hidden mb-10 bg-panel">
         <Stat num={stats?.openJobs ?? "—"} label="Open jobs" />
         <Stat num={stats?.totalStudents ?? "—"} label="Total applicants" />
         <Stat num={stats?.shortlistedCount ?? "—"} label="Shortlisted" />
@@ -130,7 +130,7 @@ export default function AdminDashboard({ admin, onLogout }) {
 
 function Stat({ num, label, last }) {
   return (
-    <div className={`flex-1 py-5 px-6 ${!last ? "border-r border-line" : ""}`}>
+    <div className={`flex-1 py-4 px-5 md:py-5 md:px-6 border-b md:border-b-0 ${!last ? "md:border-r border-line" : "border-b-0 border-line"}`}>
       <div className="font-mono text-[26px] font-semibold text-primary">{num}</div>
       <div className="text-xs text-inksoft mt-1">{label}</div>
     </div>
