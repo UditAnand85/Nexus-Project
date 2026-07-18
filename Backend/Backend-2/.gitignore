@@ -21,3 +21,7 @@ instance/
 # System Files
 .DS_Store
 Thumbs.db
+
+# Node (accidentally installed — Backend-2 is Python only)
+node_modules/
+package-lock.json

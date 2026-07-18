@@ -4,7 +4,6 @@ from marshmallow import ValidationError
 
 from app.schemas.request_schema import ResumeParseRequestSchema
 from app.schemas.response_schema import ResumeParseResponseSchema
-from app.services import resume_parser, ats_scorer
 
 bp = Blueprint("resume", __name__)
 

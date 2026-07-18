@@ -1,0 +1,30 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+venv/
+.venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ─── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Build Outputs ────────────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+
+# ─── Secrets & Local Config ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── System Files ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log

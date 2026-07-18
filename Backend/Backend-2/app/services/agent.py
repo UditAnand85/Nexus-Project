@@ -150,7 +150,7 @@ def check_scores_node(state: ResumeState) -> dict:
         logger.error(f"Error checking scores: {e}")
         return {"error": f"Scoring failed: {str(e)}"}
 
-# Build the Graph
+# Build the Graph — sequential: extract text → generate summary → score → END
 workflow = StateGraph(ResumeState)
 
 workflow.add_node("parse_resume", extract_text_node)
@@ -159,8 +159,7 @@ workflow.add_node("check_scores", check_scores_node)
 
 workflow.set_entry_point("parse_resume")
 workflow.add_edge("parse_resume", "generate_summary")
-workflow.add_edge("parse_resume", "check_scores")
-workflow.add_edge("generate_summary", END)
+workflow.add_edge("generate_summary", "check_scores")
 workflow.add_edge("check_scores", END)
 
 resume_agent = workflow.compile()
