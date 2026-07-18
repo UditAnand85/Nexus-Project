@@ -1,25 +1,13 @@
 import {
   pgTable,
-  serial,
-  integer,
-  text,
   decimal,
   timestamp,
-  pgEnum,
   varchar,
   uuid,
 } from 'drizzle-orm/pg-core';
 import { students } from './students.js';
 
-/**
- * ENUM: recommendation
- * AI-generated hiring recommendation for shortlisted candidates.
- */
-export const recommendationEnum = pgEnum('recommendation', [
-  'Hire',
-  'Consider',
-  'Reject',
-]);
+
 
 /**
  * SHORTLISTED_STUDENTS Table
@@ -37,7 +25,7 @@ export const shortlistedStudents = pgTable('shortlisted_students', {
     .unique(), // One shortlisted record per student
   aptitude_score: decimal('aptitude_score', { precision: 5, scale: 2 }),
   final_score: decimal('final_score', { precision: 5, scale: 2 }),
-  recommendation: recommendationEnum('recommendation'),
+
   current_stage: varchar('current_stage', { length: 100 }), // Aptitude / Final Review / Completed
   updated_at: timestamp('updated_at')
     .defaultNow()

@@ -5,7 +5,9 @@ import { students, jobs, shortlistedStudents } from '../db/schema/index.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { resumeQueue } from '../queues/resume.queue.js';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { s3Client } from '../config/s3.js';
+import { sesClient } from '../config/ses.js';
 import { env } from '../config/env.js';
 
 // ─── Submit Application ───────────────────────────────────────────────────────
@@ -189,7 +191,6 @@ export const getStudentById = async (studentId) => {
       shortlisted_id: shortlistedStudents.shortlisted_id,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
-      recommendation: shortlistedStudents.recommendation,
       current_stage: shortlistedStudents.current_stage,
     })
     .from(students)
@@ -271,4 +272,74 @@ export const retryFailedResumes = async () => {
   }
 
   return { queuedCount: count, totalFound: failedStudents.length };
+};
+
+// ─── Manual Email Dispatch ────────────────────────────────────────────────────
+
+export const sendManualEmail = async (studentId, action) => {
+  const student = await getStudentById(studentId);
+  const job = (await db.select().from(jobs).where(eq(jobs.job_id, student.job_id)).limit(1))[0];
+
+  if (!student.shortlisted_id) {
+    throw new AppError('Cannot send email. Student is not shortlisted.', 400);
+  }
+
+  let emailSubject = '';
+  let emailHtml = '';
+  let newStage = '';
+
+  if (action === 'invite') {
+    newStage = 'Selected';
+    emailSubject = `Congratulations! Invitation to Physical Interview for ${job.job_title}`;
+    emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a1a1a;">Physical Interview Invitation</h2>
+        <p>Hi <strong>${student.full_name}</strong>,</p>
+        <p>Congratulations! Based on your evaluation, we are thrilled to invite you to a physical onsite interview for the <strong>${job.job_title}</strong> role at RecruitAI.</p>
+        <p>Our recruitment team will be in touch shortly to schedule the exact date and time.</p>
+        <p>Best regards,<br>The RecruitAI Team</p>
+      </div>
+    `;
+  } else if (action === 'reject') {
+    newStage = 'Rejected';
+    emailSubject = `Update on your application for ${job.job_title}`;
+    emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a1a1a;">Application Update</h2>
+        <p>Hi <strong>${student.full_name}</strong>,</p>
+        <p>Thank you very much for applying to the <strong>${job.job_title}</strong> role and completing the evaluation process.</p>
+        <p>While we were impressed with your background, we have decided to move forward with other candidates who more closely align with our current needs for this position.</p>
+        <p>We appreciate the time you invested and wish you the best in your job search.</p>
+        <p>Best regards,<br>The RecruitAI Team</p>
+      </div>
+    `;
+  } else {
+    throw new AppError('Invalid email action. Use "invite" or "reject".', 400);
+  }
+
+  // Update current stage in DB
+  await db
+    .update(shortlistedStudents)
+    .set({ current_stage: newStage, updated_at: new Date() })
+    .where(eq(shortlistedStudents.shortlisted_id, student.shortlisted_id));
+
+  // Send the email
+  const emailCommand = new SendEmailCommand({
+    Source: env.AWS_SES_FROM_EMAIL,
+    Destination: { ToAddresses: [student.email] },
+    Message: {
+      Subject: { Data: emailSubject, Charset: 'UTF-8' },
+      Body: { Html: { Data: emailHtml, Charset: 'UTF-8' } },
+    },
+  });
+
+  try {
+    await sesClient.send(emailCommand);
+    console.log(`[Manual Email] Sent ${action} email to ${student.email}`);
+  } catch (err) {
+    console.error(`[Manual Email] Failed to send ${action} email to ${student.email}:`, err.message);
+    throw new AppError('Failed to send email. Check SES configuration.', 500);
+  }
+
+  return { student_id: studentId, action, stage: newStage };
 };

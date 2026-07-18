@@ -131,7 +131,7 @@ export const getMyApplications = async (email) => {
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
       current_stage: shortlistedStudents.current_stage,
-      recommendation: shortlistedStudents.recommendation,
+
     })
     .from(students)
     .innerJoin(jobs, eq(students.job_id, jobs.job_id))

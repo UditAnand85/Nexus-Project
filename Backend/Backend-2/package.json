@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "marshmallow": "^0.5.4"
+  }
+}

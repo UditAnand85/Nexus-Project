@@ -98,3 +98,21 @@ export const retryFailedResumes = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * POST /api/v1/students/:id/send-email
+ * Admin: Manually send 'invite' or 'reject' email to a waitlisted candidate.
+ */
+export const sendManualEmail = async (req, res, next) => {
+  try {
+    const { action } = req.body; // 'invite' or 'reject'
+    const result = await studentsService.sendManualEmail(req.params.id, action);
+    res.status(200).json({
+      success: true,
+      message: `Successfully sent ${action} email.`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

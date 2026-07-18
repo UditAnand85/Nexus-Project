@@ -24,9 +24,7 @@ function StagePill({ stage }) {
 }
 
 export default function CandidateRow({ student, onClick, isEvaluated }) {
-  const stage = isEvaluated 
-    ? (student.current_stage === "Completed" ? "Completed" : "Pending") 
-    : "Applied";
+  const stage = student.current_stage || student.application_status || (isEvaluated ? "Pending" : "Applied");
 
   return (
     <div

@@ -48,4 +48,12 @@ router.patch(
   jobsController.startEvaluation
 );
 
+// PATCH /api/v1/jobs/:id/process-results — Process evaluation results
+router.patch(
+  '/:id/process-results',
+  authenticateAdmin,
+  allowWriteAccess,
+  jobsController.processResults
+);
+
 export default router;

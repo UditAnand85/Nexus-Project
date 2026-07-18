@@ -1,4 +1,5 @@
 import { scoreOrDash } from "../utils/format";
+import { sendCandidateEmail } from "../api/apiClient";
 
 export default function CandidateDrawer({ student, job, onClose }) {
   const open = !!student;
@@ -73,9 +74,36 @@ export default function CandidateDrawer({ student, job, onClose }) {
             </div>
 
             <div className="flex gap-2.5 mt-7">
-              <button className="btn-primary flex-1 text-[13px] py-2.5">Invite</button>
-              <button className="btn-ghost flex-1 text-[13px] py-2.5">Waitlist</button>
-              <button className="btn-ghost flex-1 text-[13px] py-2.5 border-stop text-stop">Reject</button>
+              <button 
+                className="btn-primary flex-1 text-[13px] py-2.5"
+                onClick={async () => {
+                  if (!window.confirm("Send interview invitation email to this candidate?")) return;
+                  try {
+                    await sendCandidateEmail(student.student_id, 'invite');
+                    alert("Invite email sent successfully!");
+                    window.location.reload();
+                  } catch (e) {
+                    alert(e.message || "Failed to send email");
+                  }
+                }}
+              >
+                Invite
+              </button>
+              <button 
+                className="btn-ghost flex-1 text-[13px] py-2.5 border-stop text-stop"
+                onClick={async () => {
+                  if (!window.confirm("Send rejection email to this candidate?")) return;
+                  try {
+                    await sendCandidateEmail(student.student_id, 'reject');
+                    alert("Rejection email sent successfully!");
+                    window.location.reload();
+                  } catch (e) {
+                    alert(e.message || "Failed to send email");
+                  }
+                }}
+              >
+                Reject
+              </button>
             </div>
           </>
         )}

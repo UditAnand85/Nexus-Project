@@ -23,6 +23,7 @@ export const jobStatusEnum = pgEnum('job_status', [
   'Closed',
   'Shortlisting Closed',
   'Evaluation Started',
+  'Results Processed',
 ]);
 
 /**

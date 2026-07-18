@@ -325,7 +325,6 @@ export const getRankedStudents = async (jobId) => {
       shortlisted_id: shortlistedStudents.shortlisted_id,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
-      recommendation: shortlistedStudents.recommendation,
       current_stage: shortlistedStudents.current_stage,
     })
     .from(students)
@@ -344,4 +343,115 @@ export const getRankedStudents = async (jobId) => {
     ...item,
     rank: index + 1,
   }));
+};
+
+// ─── Process Results ────────────────────────────────────────────────────────
+
+/**
+ * Processes the job evaluation results.
+ * Distributes candidates based on openings (Selected, Waitlist, Rejected)
+ * and sends AWS SES emails.
+ */
+export const processJobResults = async (jobId) => {
+  const job = await getJobById(jobId);
+
+  if (job.job_status !== 'Evaluation Started') {
+    throw new AppError('Job must be in Evaluation Started status to process results.', 400);
+  }
+
+  const openings = job.openings || 1;
+  const numSelected = openings * 2;
+  const numWaitlist = openings;
+
+  // Update job status
+  const [updatedJob] = await db
+    .update(jobs)
+    .set({ job_status: 'Results Processed', updated_at: new Date() })
+    .where(eq(jobs.job_id, jobId))
+    .returning();
+
+  // Fetch all shortlisted candidates, joined with students for email
+  const allCandidates = await db
+    .select({
+      student_id: students.student_id,
+      shortlisted_id: shortlistedStudents.shortlisted_id,
+      full_name: students.full_name,
+      email: students.email,
+      final_score: shortlistedStudents.final_score,
+      resume_score: students.resume_score,
+    })
+    .from(students)
+    .innerJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
+    .where(eq(students.job_id, jobId));
+
+  // Sort: final_score DESC (if available), then resume_score DESC
+  const sorted = allCandidates.sort((a, b) => {
+    const scoreA = parseFloat(a.final_score || a.resume_score || 0);
+    const scoreB = parseFloat(b.final_score || b.resume_score || 0);
+    return scoreB - scoreA;
+  });
+
+  for (let i = 0; i < sorted.length; i++) {
+    const candidate = sorted[i];
+    let newStage = '';
+    let emailHtml = '';
+    let emailSubject = '';
+
+    if (i < numSelected) {
+      newStage = 'Selected';
+      emailSubject = `Congratulations! Invitation to Physical Interview for ${job.job_title}`;
+      emailHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1a1a1a;">Physical Interview Invitation</h2>
+          <p>Hi <strong>${candidate.full_name}</strong>,</p>
+          <p>Congratulations! Based on your evaluation, we are thrilled to invite you to a physical onsite interview for the <strong>${job.job_title}</strong> role at RecruitAI.</p>
+          <p>Our recruitment team will be in touch shortly to schedule the exact date and time.</p>
+          <p>Best regards,<br>The RecruitAI Team</p>
+        </div>
+      `;
+    } else if (i < numSelected + numWaitlist) {
+      newStage = 'Waitlist';
+      // No automated email for waitlisted as per requirements
+    } else {
+      newStage = 'Rejected';
+      emailSubject = `Update on your application for ${job.job_title}`;
+      emailHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1a1a1a;">Application Update</h2>
+          <p>Hi <strong>${candidate.full_name}</strong>,</p>
+          <p>Thank you very much for applying to the <strong>${job.job_title}</strong> role and completing the evaluation process.</p>
+          <p>While we were impressed with your background, we have decided to move forward with other candidates who more closely align with our current needs for this position.</p>
+          <p>We appreciate the time you invested and wish you the best in your job search.</p>
+          <p>Best regards,<br>The RecruitAI Team</p>
+        </div>
+      `;
+    }
+
+    // Update the database
+    await db
+      .update(shortlistedStudents)
+      .set({ current_stage: newStage, updated_at: new Date() })
+      .where(eq(shortlistedStudents.shortlisted_id, candidate.shortlisted_id));
+
+    // Send emails for Selected and Rejected
+    if (newStage === 'Selected' || newStage === 'Rejected') {
+      const emailCommand = new SendEmailCommand({
+        Source: env.AWS_SES_FROM_EMAIL,
+        Destination: { ToAddresses: [candidate.email] },
+        Message: {
+          Subject: { Data: emailSubject, Charset: 'UTF-8' },
+          Body: { Html: { Data: emailHtml, Charset: 'UTF-8' } },
+        },
+      });
+
+      try {
+        await sesClient.send(emailCommand);
+        console.log(`[Process Results] Sent ${newStage} email to ${candidate.email}`);
+      } catch (err) {
+        console.error(`[Process Results] Failed to send ${newStage} email to ${candidate.email}:`, err.message);
+      }
+    }
+  }
+
+  return updatedJob;
 };

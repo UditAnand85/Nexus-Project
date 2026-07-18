@@ -33,4 +33,7 @@ router.post('/retry-failed', authenticateAdmin, allowAnyAdmin, studentsControlle
 // GET /api/v1/students/:id — Get a specific student record
 router.get('/:id', authenticateAdmin, allowAnyAdmin, studentsController.getStudentById);
 
+// POST /api/v1/students/:id/send-email — Manually send invite/reject email
+router.post('/:id/send-email', authenticateAdmin, allowAnyAdmin, studentsController.sendManualEmail);
+
 export default router;

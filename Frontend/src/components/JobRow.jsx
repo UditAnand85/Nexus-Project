@@ -8,6 +8,9 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
   if (job.job_status === "Evaluation Started") {
     statusLabel = "Evaluation Started";
     statusCls = "bg-holdsoft text-hold";
+  } else if (job.job_status === "Results Processed") {
+    statusLabel = "Results Processed";
+    statusCls = "bg-gosoft text-go";
   } else if (isClosed) {
     statusLabel = "Shortlisting Closed";
     statusCls = "bg-[#EEEFEC] text-inksoft";

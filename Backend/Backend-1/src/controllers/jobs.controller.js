@@ -120,3 +120,20 @@ export const getRankedStudents = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * PATCH /api/v1/jobs/:id/process-results
+ * Process evaluation results, assign waitlists/rejections/invites, and send SES emails.
+ */
+export const processResults = async (req, res, next) => {
+  try {
+    const job = await jobsService.processJobResults(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: 'Results processed and emails sent successfully.',
+      data: job,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

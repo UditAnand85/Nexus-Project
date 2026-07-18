@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { getRankedStudents, getJob, startEvaluation } from "../api/apiClient";
+import { getRankedStudents, getJob, startEvaluation, processResults } from "../api/apiClient";
 import { useApi } from "../utils/useApi";
 import CandidateRow from "../components/CandidateRow";
 import { Loading, ErrorState } from "../components/Status";
@@ -12,7 +12,7 @@ export default function JobCandidates({ onOpenCandidate }) {
     data: ranked, loading: rankedLoading, error: rankedError, refetch: refetchRanked,
   } = useApi(() => (jobId ? getRankedStudents(jobId) : Promise.resolve(null)), [jobId]);
 
-  const isEvaluated = job?.job_status === 'Evaluation Started';
+  const isEvaluated = job?.job_status === 'Evaluation Started' || job?.job_status === 'Results Processed';
 
   return (
     <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
@@ -31,7 +31,7 @@ export default function JobCandidates({ onOpenCandidate }) {
               Top candidates ranked by resume score
             </p>
           </div>
-          {!isEvaluated && (
+          {job.job_status === 'Shortlisting Closed' && (
             <button 
               className="btn-primary" 
               onClick={async () => {
@@ -45,6 +45,23 @@ export default function JobCandidates({ onOpenCandidate }) {
               }}
             >
               Evaluate
+            </button>
+          )}
+          {job.job_status === 'Evaluation Started' && (
+            <button 
+              className="btn-primary" 
+              onClick={async () => {
+                if (!window.confirm("Process results? This will immediately send physical interview invites to the top candidates, waitlist the next group, and send rejection emails to the rest.")) return;
+                try {
+                  await processResults(jobId);
+                  alert("Results processed and emails sent successfully!");
+                  window.location.reload();
+                } catch (e) {
+                  alert(e.message || "Failed to process results.");
+                }
+              }}
+            >
+              Process Results
             </button>
           )}
         </div>
