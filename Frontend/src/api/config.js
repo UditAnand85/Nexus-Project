@@ -1,6 +1,6 @@
 // Flip VITE_USE_MOCK to "false" in .env once your friend's backend is running.
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== "false";
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 const TOKEN_KEYS = {
   admin: "recruitai_admin_token",
@@ -48,10 +48,10 @@ export async function apiFetch(path, options = {}, tokenRole = "admin") {
 
 // Lets the app show a clear "backend not reachable" banner instead of
 // silently failing every request when USE_MOCK is false.
-// NOTE: /health is at the root (http://localhost:5000/health), not under /api/v1
+// /health is proxied via Vite to the EC2 backend (see vite.config.js)
 export const BACKEND_ROOT_URL = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/v1\/?$/, "")
-  : "http://localhost:5000";
+  : "";
 
 export async function checkBackendHealth() {
   if (USE_MOCK) return { ok: true, mock: true };

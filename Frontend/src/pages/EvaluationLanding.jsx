@@ -4,7 +4,7 @@ import { APP_NAME } from "../constants/roles";
 import { getEvaluationQuestions, submitEvaluation } from "../api/apiClient";
 import { apiFetch } from "../api/config";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 // ─── Timer hook ───────────────────────────────────────────────────────────────
 function useTimer(initialSeconds, onExpire) {
