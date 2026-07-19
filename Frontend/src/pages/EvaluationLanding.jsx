@@ -33,7 +33,7 @@ function useTimer(initialSeconds, onExpire) {
 function ResultScreen({ candidate, job }) {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
-      <div className="bg-paper border-b border-line px-8 py-4 flex items-center justify-between">
+      <div className="bg-paper border-b border-line px-4 sm:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 bg-ink rounded-md flex items-center justify-center">
             <span className="text-white font-mono font-semibold text-[11px]">RA</span>
@@ -43,14 +43,14 @@ function ResultScreen({ candidate, job }) {
         <div className="text-xs text-inksoft font-mono">Evaluation Complete</div>
       </div>
 
-      <div className="flex-1 max-w-[600px] mx-auto w-full px-6 py-14 text-center">
+      <div className="flex-1 max-w-[600px] mx-auto w-full px-5 sm:px-6 py-10 sm:py-14 text-center">
         {/* Checkmark */}
-        <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl" style={{ background: `#22c55e18`, border: `2px solid #22c55e` }}>
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl sm:text-4xl" style={{ background: `#22c55e18`, border: `2px solid #22c55e` }}>
           ✅
         </div>
 
         <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-2">Evaluation Complete</span>
-        <h1 className="text-3xl font-semibold text-ink mb-1">Submitted Successfully!</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-ink mb-1">Submitted Successfully!</h1>
         <p className="text-inksoft text-sm mb-10">You've completed the evaluation for <strong className="text-ink">{job?.job_title}</strong></p>
 
         <p className="text-sm text-inksoft leading-relaxed">
@@ -121,17 +121,17 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
       {/* Header */}
-      <div className="bg-paper border-b border-line px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 bg-ink rounded-md flex items-center justify-center">
+      <div className="bg-paper border-b border-line px-3 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-y-1.5 gap-x-3 sticky top-0 z-10">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="w-6 h-6 bg-ink rounded-md flex items-center justify-center shrink-0">
             <span className="text-white font-mono font-semibold text-[10px]">RA</span>
           </div>
-          <span className="font-medium text-sm text-ink">{sectionLabel}</span>
-          <span className="font-mono text-[11px] text-inksoft">Q{sectionNum}/{sectionTotal}</span>
+          <span className="font-medium text-sm text-ink truncate max-w-[110px] sm:max-w-none">{sectionLabel}</span>
+          <span className="font-mono text-[11px] text-inksoft shrink-0">Q{sectionNum}/{sectionTotal}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-xs text-inksoft">{answered}/{total} answered</div>
-          <div className="font-mono text-sm font-bold px-3 py-1 rounded-lg" style={{ color: timerColor, background: `${timerColor}15` }}>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="hidden sm:block text-xs text-inksoft">{answered}/{total} answered</div>
+          <div className="font-mono text-xs sm:text-sm font-bold px-2.5 sm:px-3 py-1 rounded-lg" style={{ color: timerColor, background: `${timerColor}15` }}>
             ⏱ {timerDisplay}
           </div>
         </div>
@@ -160,18 +160,18 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
       </div>
 
       {/* Question */}
-      <div className="flex-1 max-w-[720px] mx-auto w-full px-6 py-8">
+      <div className="flex-1 max-w-[720px] mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-2 flex items-center gap-2">
           <span className="font-mono text-[10px] text-inksoft bg-[#EEEFEC] px-2 py-0.5 rounded">{q.category}</span>
         </div>
 
-        <h2 className="text-[17px] font-medium text-ink leading-relaxed mb-7">
+        <h2 className="text-base sm:text-[17px] font-medium text-ink leading-relaxed mb-6 sm:mb-7">
           <span className="text-inksoft font-mono text-sm mr-2">{current + 1}.</span>
           {q.question}
         </h2>
 
         {/* Options */}
-        <div className="flex flex-col gap-3 mb-10">
+        <div className="flex flex-col gap-3 mb-8 sm:mb-10">
           {["A", "B", "C", "D"].map((opt) => {
             const text = q[`option_${opt.toLowerCase()}`];
             const selected = answers[q.question_id] === opt;
@@ -179,7 +179,7 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
               <button
                 key={opt}
                 onClick={() => selectOption(opt)}
-                className="flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all"
+                className="flex items-start gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border-2 text-left transition-all"
                 style={{
                   borderColor: selected ? "#0F0F0E" : "#E4E4DC",
                   background: selected ? "#0F0F0E" : "#FFFFFF",
@@ -208,11 +208,11 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
         )}
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <button
             onClick={goPrev}
             disabled={current === 0}
-            className="px-5 py-2.5 rounded-lg border border-line text-sm font-medium text-ink disabled:opacity-30 hover:bg-[#F4F4F1] transition-colors"
+            className="px-3.5 sm:px-5 py-2.5 rounded-lg border border-line text-sm font-medium text-ink disabled:opacity-30 hover:bg-[#F4F4F1] transition-colors whitespace-nowrap"
           >
             ← Previous
           </button>
@@ -237,7 +237,7 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
           {current < total - 1 ? (
             <button
               onClick={goNext}
-              className="px-5 py-2.5 rounded-lg bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors"
+              className="px-3.5 sm:px-5 py-2.5 rounded-lg bg-ink text-white text-sm font-medium hover:bg-ink/90 transition-colors whitespace-nowrap"
             >
               Next →
             </button>
@@ -245,7 +245,7 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              className="px-4 sm:px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap"
               style={{ background: submitting ? "#E4E4DC" : "#22c55e", color: submitting ? "#9B9B8C" : "#FFFFFF" }}
             >
               {submitting ? (
@@ -400,27 +400,27 @@ export default function EvaluationLanding() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
       {/* Top Bar */}
-      <div className="bg-paper border-b border-line px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-ink rounded-md flex items-center justify-center">
+      <div className="bg-paper border-b border-line px-4 sm:px-8 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 bg-ink rounded-md flex items-center justify-center shrink-0">
             <span className="text-white font-mono font-semibold text-[11px]">RA</span>
           </div>
           <span className="font-serif font-semibold text-[18px] text-ink">{APP_NAME}</span>
         </div>
-        <div className="text-right">
-          <div className="text-sm font-medium text-ink">{job?.job_title}</div>
+        <div className="text-left sm:text-right min-w-0">
+          <div className="text-sm font-medium text-ink truncate max-w-[220px] sm:max-w-none">{job?.job_title}</div>
           <div className="text-xs text-inksoft font-mono">Candidate Evaluation Portal</div>
         </div>
       </div>
 
-      <div className="flex-1 max-w-[680px] mx-auto w-full px-6 py-12">
+      <div className="flex-1 max-w-[680px] mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
         {/* Welcome */}
         <div className="mb-10">
           <div className="inline-flex items-center gap-2 bg-gosoft text-go text-xs font-mono px-3 py-1 rounded-full mb-4">
             <span className="w-1.5 h-1.5 bg-go rounded-full animate-pulse inline-block" />
             Evaluation Active
           </div>
-          <h1 className="text-3xl font-semibold text-ink mb-2">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-ink mb-2">
             Welcome, {candidate?.full_name?.split(" ")[0]} 👋
           </h1>
           <p className="text-inksoft text-[15px] leading-relaxed">
@@ -434,10 +434,10 @@ export default function EvaluationLanding() {
           {STAGES.map((stage, idx) => (
             <div key={stage.key} className="flex-1 flex items-center">
               <div className="flex flex-col items-center gap-1.5 z-10 relative flex-shrink-0">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold transition-all border-2 ${idx === 0 ? "bg-ink border-ink text-white shadow-md" : "bg-paper border-line text-inksoft"}`}>
+                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all border-2 ${idx === 0 ? "bg-ink border-ink text-white shadow-md" : "bg-paper border-line text-inksoft"}`}>
                   {stage.step}
                 </div>
-                <span className="text-[10px] font-mono text-inksoft whitespace-nowrap">{stage.label.split(" ")[0]}</span>
+                <span className="text-[9px] sm:text-[10px] font-mono text-inksoft whitespace-nowrap">{stage.label.split(" ")[0]}</span>
               </div>
               {idx < STAGES.length - 1 && <div className="flex-1 h-px bg-line mx-1" />}
             </div>
@@ -449,13 +449,13 @@ export default function EvaluationLanding() {
           {STAGES.map((stage, idx) => (
             <div
               key={stage.key}
-              className={`bg-paper border rounded-xl p-5 flex items-start gap-4 transition-all ${idx === 0 ? "border-ink shadow-sm" : "border-line opacity-60"}`}
+              className={`bg-paper border rounded-xl p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4 transition-all ${idx === 0 ? "border-ink shadow-sm" : "border-line opacity-60"}`}
             >
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0 ${idx === 0 ? "bg-ink/5" : "bg-[#EEEFEC]"}`}>
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-lg flex-shrink-0 ${idx === 0 ? "bg-ink/5" : "bg-[#EEEFEC]"}`}>
                 {stage.icon}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 min-w-[180px]">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="font-mono text-[10px] text-inksoft">STEP {stage.step}</span>
                   {idx === 0 && <span className="font-mono text-[10px] bg-gosoft text-go px-2 py-0.5 rounded-full">Up Next</span>}
                 </div>
@@ -464,23 +464,23 @@ export default function EvaluationLanding() {
                 {stage.time && idx === 0 && <div className="text-xs text-inksoft mt-1 font-mono">⏱ {stage.time}</div>}
               </div>
               {idx === 0 ? (
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 w-full sm:w-auto">
                   {screen === "loading_q" ? (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-ink/10 rounded-lg">
+                    <div className="flex items-center justify-center gap-2 px-4 py-2 bg-ink/10 rounded-lg">
                       <span className="w-3.5 h-3.5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
                       <span className="text-xs text-ink">Loading…</span>
                     </div>
                   ) : (
                     <button
                       onClick={handleBegin}
-                      className="btn-primary text-sm px-4 py-2"
+                      className="btn-primary text-sm px-4 py-2 w-full sm:w-auto"
                     >
                       Begin →
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="w-5 h-5 rounded-full border border-line flex-shrink-0 mt-1" />
+                <div className="w-5 h-5 rounded-full border border-line flex-shrink-0 mt-1 hidden sm:block" />
               )}
             </div>
           ))}
@@ -507,13 +507,13 @@ export default function EvaluationLanding() {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 pt-6 border-t border-line flex items-center justify-between">
+        <div className="mt-8 pt-6 border-t border-line flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="text-xs text-inksoft">Signed in as</div>
             <div className="text-sm font-medium text-ink">{candidate?.full_name}</div>
-            <div className="text-xs text-inksoft font-mono">{candidate?.email}</div>
+            <div className="text-xs text-inksoft font-mono break-all">{candidate?.email}</div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <div className="text-xs text-inksoft">ATS Resume Score</div>
             <div className="text-2xl font-mono font-bold text-ink">
               {candidate?.resume_score ? `${parseFloat(candidate.resume_score).toFixed(0)}` : "—"}

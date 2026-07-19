@@ -1,5 +1,8 @@
 import * as employeesService from '../services/employees.service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { db } from '../config/db.js';
+import { roles } from '../db/schema/index.js';
+import { eq } from 'drizzle-orm';
 
 // ─── Create Employee ──────────────────────────────────────────────────────────
 
@@ -24,9 +27,20 @@ export const createEmployee = async (req, res, next) => {
       full_name, email, role_key, account_status, department,
     });
 
+    // Look up the role name for the welcome email
+    const roleResult = await db
+      .select({ role_name: roles.role_name })
+      .from(roles)
+      .where(eq(roles.role_key, role_key))
+      .limit(1);
+    const role_name = roleResult[0]?.role_name || role_key;
+
+    // Fire-and-forget: send the welcome email via SES (non-blocking)
+    employeesService.sendAdminWelcomeEmail({ full_name, email, role_name, tempPassword });
+
     res.status(201).json({
       success: true,
-      message: 'Employee account created successfully.',
+      message: 'Employee account created successfully. A welcome email has been sent.',
       data: { employee, tempPassword },
     });
   } catch (err) {

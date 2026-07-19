@@ -37,8 +37,8 @@ export default function ChangePassword({ admin, onChanged }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[80vh] px-4">
-      <div className="bg-panel border border-line rounded-xl shadow-sm p-11 w-[420px]">
+    <div className="flex justify-center items-center min-h-[80vh] px-4 py-8">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-6 sm:p-11 w-full max-w-[420px]">
         {/* Header */}
         <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-5">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"

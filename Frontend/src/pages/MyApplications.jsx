@@ -8,22 +8,22 @@ export default function MyApplications({ account, onLogout }) {
   const { data: applications, loading, error, refetch } = useApi(() => getMyApplications(), []);
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-3.5">
-            Signed in as {account?.full_name}
-          </span>
-          <h1 className="text-[34px] font-medium">My applications</h1>
-        </div>
-        <button onClick={onLogout} className="btn-ghost">Log out</button>
-      </div>
+ <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
+   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-8">
+     <div>
+       <span className="font-mono text-[10px] md:text-xs uppercase tracking-wider text-inksoft block mb-3.5">
+         Signed in as {account?.full_name}
+       </span>
+       <h1 className="text-2xl md:text-[34px] font-medium">My applications</h1>
+     </div>
+     <button onClick={onLogout} className="btn-ghost w-full sm:w-auto">Log out</button>
+   </div>
 
       {loading && <Loading label="Loading your applications…" />}
       {error && <ErrorState message={error} onRetry={refetch} />}
 
       {applications && applications.length === 0 && (
-        <div className="bg-panel border border-line rounded-xl shadow-sm p-10 text-center">
+        <div className="bg-panel border border-line rounded-xl shadow-sm p-6 sm:p-10 text-center">
           <p className="text-inksoft text-sm mb-5">You haven't applied to any roles yet.</p>
           <button onClick={() => navigate("/")} className="btn-primary">Browse open roles</button>
         </div>
@@ -39,7 +39,7 @@ export default function MyApplications({ account, onLogout }) {
               review: "bg-[#EEF0EE] text-inksoft",
             };
             return (
-              <div key={app.student_id} className="grid grid-cols-[1fr_140px] gap-4 items-center py-5 border-b border-line">
+              <div key={app.student_id} className="grid grid-cols-[1fr_auto] gap-3 sm:gap-4 items-center py-4 sm:py-5 border-b border-line">
                 <div>
                   <div className="font-serif text-lg font-medium">{app.job_title}</div>
                   <div className="text-xs text-inksoft mt-0.5">{app.student_id}</div>

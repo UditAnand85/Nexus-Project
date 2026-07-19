@@ -30,8 +30,8 @@ export default function StudentLogin({ onLoggedIn }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[70vh] px-4">
-      <div className="bg-panel border border-line rounded-xl shadow-sm p-11 w-[380px]">
+    <div className="flex justify-center items-center min-h-[70vh] px-4 py-8">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-6 sm:p-11 w-full max-w-[380px]">
         <h2 className="text-2xl mb-1.5">Sign in</h2>
         <div className="text-inksoft text-[13px] mb-7">
           Track your applications and continue where you left off.

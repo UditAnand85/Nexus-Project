@@ -39,8 +39,8 @@ export default function StudentRegister({ onRegistered }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[70vh] px-4">
-      <div className="bg-panel border border-line rounded-xl shadow-sm p-11 w-[400px]">
+    <div className="flex justify-center items-center min-h-[70vh] px-4 py-8">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-6 sm:p-11 w-full max-w-[400px]">
         <h2 className="text-2xl mb-1.5">Create your account</h2>
         <div className="text-inksoft text-[13px] mb-7">
           Apply to roles and track your application status.

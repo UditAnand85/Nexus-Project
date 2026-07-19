@@ -13,7 +13,7 @@ export default function Evaluation({ student }) {
   const firstName = student?.full_name?.split(" ")[0] || "there";
 
   return (
-    <div className="max-w-[680px] mx-auto px-8 py-20 pb-32 text-center">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-8 py-12 sm:py-20 pb-24 sm:pb-32 text-center">
       {/* Check icon */}
       <div className="w-16 h-16 rounded-full bg-gosoft border-2 border-go flex items-center justify-center mx-auto mb-8">
         <svg
@@ -36,7 +36,7 @@ export default function Evaluation({ student }) {
         Application received
       </span>
 
-      <h1 className="text-[32px] font-medium mb-4">
+      <h1 className="text-2xl sm:text-[32px] font-medium mb-4">
         Thank you, {firstName}!
       </h1>
 
@@ -45,7 +45,7 @@ export default function Evaluation({ student }) {
         and get back to you about the further selection process via email.
       </p>
 
-      <div className="bg-panel border border-line rounded-xl p-7 text-left max-w-[480px] mx-auto">
+      <div className="bg-panel border border-line rounded-xl p-5 sm:p-7 text-left max-w-[480px] mx-auto">
         <h3 className="text-sm font-medium mb-4 text-ink">What happens next?</h3>
         <ul className="space-y-3">
           {[

@@ -22,38 +22,40 @@ export default function Navbar({ isStudentAuthed, isAdminAuthed, onNavigate }) {
   const isAdminSection = view.startsWith("/admin");
 
   return (
-    <div className="flex items-center justify-between px-4 md:px-8 py-4 md:py-5 border-b border-line bg-paper sticky top-0 z-50">
-      <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onNavigate("/")}>
-        <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center text-white font-mono font-semibold text-[13px]">
+    <div className="flex flex-wrap items-center justify-between gap-y-2 px-3 sm:px-4 md:px-8 py-3 md:py-5 border-b border-line bg-paper sticky top-0 z-50">
+      <div className="flex items-center gap-2 sm:gap-2.5 cursor-pointer">
+        <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center text-white font-mono font-semibold text-[13px] shrink-0">
           RA
         </div>
-        <div className="font-serif font-semibold text-lg md:text-[19px]">{APP_NAME}</div>
+        <div className="font-serif font-semibold text-base sm:text-lg md:text-[19px]">{APP_NAME}</div>
       </div>
 
       {/* Right nav */}
-      <div className="flex gap-1 md:gap-1.5 items-center">
+       <div className="flex gap-1 items-center">
         <button
           onClick={() => onNavigate("/")}
-          className={`px-4 py-2 text-sm rounded-full transition ${
+          className={`px-3 sm:px-4 py-2 text-sm rounded-full transition ${
             !isAdminSection && view !== "/my-applications"
               ? "bg-primary text-white"
               : "text-inksoft hover:bg-[#EEEFEC] hover:text-ink"
           }`}
         >
-          Career Portal
+          <span className="hidden sm:inline">Career Portal</span>
+          <span className="sm:hidden">Jobs</span>
         </button>
 
         {/* My Applications — shown only when a candidate is signed in */}
         {isStudentAuthed && (
           <button
             onClick={() => onNavigate("/my-applications")}
-            className={`px-4 py-2 text-sm rounded-full transition ${
+            className={`px-3 sm:px-4 py-2 text-sm rounded-full transition ${
               view === "/my-applications"
                 ? "bg-primary text-white"
                 : "text-inksoft hover:bg-[#EEEFEC] hover:text-ink"
             }`}
           >
-            My Applications
+            <span className="hidden sm:inline">My Applications</span>
+            <span className="sm:hidden">Applied</span>
           </button>
         )}
 

@@ -13,7 +13,7 @@ export default function CandidateDrawer({ student, job, onClose }) {
         }`}
       />
       <div
-        className={`fixed top-0 right-0 w-[420px] max-w-[92vw] h-full bg-panel shadow-[-8px_0_24px_rgba(0,0,0,0.08)] z-[101] overflow-y-auto p-9 transition-transform duration-200 ${
+        className={`fixed top-0 right-0 w-[420px] max-w-[92vw] h-full bg-paper border-l border-line shadow-xl z-[100] overflow-y-auto p-5 sm:p-9 transition-transform duration-200 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >

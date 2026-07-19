@@ -39,18 +39,18 @@ export default function JobCreate({ onBack, onPublished }) {
   };
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
+    <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
       <button onClick={onBack} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-6">
         ← Dashboard
       </button>
-      <h1 className="text-[28px] font-medium mb-6">New job posting</h1>
+      <h1 className="text-2xl md:text-[28px] font-medium mb-6">New job posting</h1>
 
-      <div className="bg-panel border border-line rounded-xl shadow-sm p-8 max-w-[640px]">
+      <div className="bg-panel border border-line rounded-xl shadow-sm p-5 sm:p-8 max-w-[640px]">
         <Field label="job_title">
           <input className="field-input" placeholder="e.g. Backend Engineer" value={form.job_title} onChange={update("job_title")} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="expected_ctc">
             <input className="field-input" placeholder="₹15–22 LPA" value={form.expected_ctc} onChange={update("expected_ctc")} />
           </Field>
@@ -59,7 +59,7 @@ export default function JobCreate({ onBack, onPublished }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="employment_type">
             <select className="field-input" value={form.employment_type} onChange={update("employment_type")}>
               {EMPLOYMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -73,7 +73,7 @@ export default function JobCreate({ onBack, onPublished }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="application_start_date">
             <input type="date" className="field-input" value={form.application_start_date} onChange={update("application_start_date")} />
           </Field>
@@ -95,7 +95,7 @@ export default function JobCreate({ onBack, onPublished }) {
         </Field>
 
         {error && <p className="text-xs text-stop mb-3">{error}</p>}
-        <button onClick={publish} disabled={publishing} className="btn-primary">
+        <button onClick={publish} disabled={publishing} className="btn-primary w-full sm:w-auto">
           {publishing ? "Publishing…" : "Publish job (created_by: ADM-001)"}
         </button>
       </div>

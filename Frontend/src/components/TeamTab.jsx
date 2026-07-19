@@ -30,12 +30,12 @@ export default function TeamTab() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <div>
           <h2 className="text-lg font-medium">Team members</h2>
           <p className="text-[13px] text-inksoft mt-0.5">Manage admin employee accounts</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary text-sm">
+        <button onClick={() => setShowModal(true)} className="btn-primary text-sm w-full sm:w-auto">
           + Add employee
         </button>
       </div>
@@ -49,22 +49,24 @@ export default function TeamTab() {
               className="text-amber-500 mt-0.5 shrink-0">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-amber-800">
                 Account created for <span className="font-semibold">{created.employee.full_name}</span>
               </p>
               <p className="text-[13px] text-amber-700 mt-1">
-                Share this temporary password with them —
-                they will be prompted to change it on first login:
+                ✉️ A welcome email with login instructions has been sent to <span className="font-mono break-all">{created.employee.email}</span>.
               </p>
-              <code className="block mt-2 px-3 py-2 bg-white border border-amber-200 rounded-lg font-mono text-sm text-amber-900 tracking-wider select-all">
+              <p className="text-[13px] text-amber-700 mt-2">
+                Backup — temporary password (in case email is delayed):
+              </p>
+              <code className="inline-block mt-1 px-3 py-1.5 bg-amber-100 border border-amber-300 rounded text-amber-900 font-mono text-sm tracking-wider select-all break-all">
                 {created.tempPassword}
               </code>
               <p className="text-[11px] text-amber-600 mt-1.5">
-                ⚠ This password is shown only once. Copy it now.
+                ⚠ This password is shown only once. The new admin must change it on first login.
               </p>
             </div>
-            <button onClick={() => setCreated(null)} className="ml-auto text-amber-400 hover:text-amber-600 text-lg leading-none">✕</button>
+            <button onClick={() => setCreated(null)} className="ml-auto text-amber-400 hover:text-amber-600 text-lg leading-none shrink-0">✕</button>
           </div>
         </div>
       )}
@@ -75,7 +77,7 @@ export default function TeamTab() {
       {employees && (
         <div className="border border-line rounded-xl overflow-hidden">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_130px_120px_110px] gap-4 px-5 py-3 bg-[#F7F7F5] border-b border-line font-mono text-[11px] uppercase tracking-wide text-inksoft">
+          <div className="hidden sm:grid sm:grid-cols-[1fr_130px_120px_110px] gap-4 px-5 py-3 bg-[#F7F7F5] border-b border-line font-mono text-[11px] uppercase tracking-wide text-inksoft">
             <span>Employee</span><span>Role</span><span>Status</span><span>Joined</span>
           </div>
           {employees.length === 0 && (
@@ -84,10 +86,10 @@ export default function TeamTab() {
           {employees.map((emp) => (
             <div
               key={emp.admin_id}
-              className="grid grid-cols-[1fr_130px_120px_110px] gap-4 px-5 py-4 border-b border-line last:border-b-0 items-center"
+              className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_130px_120px_110px] sm:gap-4 px-5 py-4 border-b border-line last:border-b-0 sm:items-center"
             >
               <div>
-                <div className="text-[15px] font-medium flex items-center gap-2">
+                <div className="text-[15px] font-medium flex items-center gap-2 flex-wrap">
                   {emp.full_name}
                   {emp.must_change_password && (
                     <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
@@ -95,12 +97,17 @@ export default function TeamTab() {
                     </span>
                   )}
                 </div>
-                <div className="text-[12px] text-inksoft mt-0.5">{emp.email}</div>
+                <div className="text-[12px] text-inksoft mt-0.5 break-all">{emp.email}</div>
               </div>
-              <span className={`font-mono text-[11px] px-2 py-1 rounded-full w-fit ${ROLE_BADGE[emp.role_key] || "bg-gray-100 text-gray-600"}`}>
-                {emp.role_name || emp.role_key}
-              </span>
-              <span className={`font-mono text-[11px] ${emp.account_status === "Active" ? "text-go" : "text-stop"}`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-mono text-[11px] px-2 py-1 rounded-full w-fit ${ROLE_BADGE[emp.role_key] || "bg-gray-100 text-gray-600"}`}>
+                  {emp.role_name || emp.role_key}
+                </span>
+                <span className={`sm:hidden font-mono text-[11px] ${emp.account_status === "Active" ? "text-go" : "text-stop"}`}>
+                  · {emp.account_status}
+                </span>
+              </div>
+              <span className={`hidden sm:inline font-mono text-[11px] ${emp.account_status === "Active" ? "text-go" : "text-stop"}`}>
                 {emp.account_status}
               </span>
               <span className="text-[12px] text-inksoft font-mono">
@@ -148,7 +155,7 @@ function AddEmployeeModal({ onCreated, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-      <div className="bg-paper border border-line rounded-xl shadow-xl w-full max-w-[480px] p-8">
+      <div className="bg-paper border border-line rounded-xl shadow-xl w-full max-w-[480px] p-5 sm:p-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h3 className="text-xl font-medium">Add new employee</h3>
@@ -170,7 +177,7 @@ function AddEmployeeModal({ onCreated, onClose }) {
             <input className="field-input" placeholder="Talent Acquisition" value={form.department} onChange={update("department")} />
           </Field>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Role">
               <select className="field-input" value={form.role_key} onChange={update("role_key")}>
                 {ROLES.map((r) => (

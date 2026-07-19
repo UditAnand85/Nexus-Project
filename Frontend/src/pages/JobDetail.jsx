@@ -15,8 +15,8 @@ export default function JobDetail({ requiresLogin, isAdminAuthed }) {
     [id]
   );
 
-  if (loading) return <div className="max-w-[1080px] mx-auto px-8 py-12"><Loading label="Loading role…" /></div>;
-  if (error) return <div className="max-w-[1080px] mx-auto px-8 py-12"><ErrorState message={error} onRetry={onRetry} /></div>;
+  if (loading) return <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12"><Loading label="Loading role…" /></div>;
+  if (error) return <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12"><ErrorState message={error} onRetry={onRetry} /></div>;
   if (!job) return null;
 
   const isClosed = job.job_status !== "Open" || new Date(job.application_end_date) < new Date();

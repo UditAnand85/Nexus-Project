@@ -15,7 +15,7 @@ export default function JobCandidates({ onOpenCandidate }) {
   const isEvaluated = job?.job_status === 'Evaluation Started' || job?.job_status === 'Results Processed';
 
   return (
-    <div className="max-w-[1080px] mx-auto px-8 py-12 pb-24">
+    <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">
       <button onClick={() => navigate("/admin/dashboard")} className="font-mono text-xs text-inksoft flex items-center gap-1.5 mb-7 hover:text-ink transition">
         ← Back to dashboard
       </button>
@@ -24,9 +24,9 @@ export default function JobCandidates({ onOpenCandidate }) {
       {jobError && <ErrorState message={jobError} />}
       
       {job && (
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-8">
           <div>
-            <h1 className="text-[30px] font-medium">{job.job_title}</h1>
+            <h1 className="text-2xl md:text-[30px] font-medium">{job.job_title}</h1>
             <p className="text-inksoft text-[13px] mt-1">
               Top candidates ranked by resume score
             </p>
@@ -67,7 +67,7 @@ export default function JobCandidates({ onOpenCandidate }) {
         </div>
       )}
 
-      <div className={`grid ${isEvaluated ? 'grid-cols-[34px_1.4fr_90px_90px_110px]' : 'grid-cols-[34px_1.4fr_90px_110px]'} gap-3.5 py-2.5 px-1.5 border-b border-ink font-mono text-[11px] uppercase tracking-wide text-inksoft`}>
+      <div className={`hidden sm:grid ${isEvaluated ? 'sm:grid-cols-[34px_1.4fr_90px_90px_110px]' : 'sm:grid-cols-[34px_1.4fr_90px_110px]'} gap-3.5 py-2.5 px-1.5 border-b border-ink font-mono text-[11px] uppercase tracking-wide text-inksoft`}>
         <span>#</span><span>Student</span><span>Resume Score</span>
         {isEvaluated && <span>Total Score</span>}
         <span>Current Stage</span>
