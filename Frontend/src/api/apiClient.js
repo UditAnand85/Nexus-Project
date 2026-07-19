@@ -51,6 +51,7 @@ export async function submitApplication(formFields, resumeFile, account) {
   body.append("email", formFields.email || account?.email || "");
   body.append("phone", formFields.phone || account?.phone || "");
   if (resumeFile) body.append("resume", resumeFile);
+  
   const res = await apiFetch(`/students/apply/${formFields.job_id}`, { method: "POST", body }, "student");
   return res.data;
 }

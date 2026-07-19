@@ -1,3 +1,5 @@
-/api/*  http://35.154.85.147:5000/api/:splat  200!
-/*      /index.html                           200
+/api/*       http://35.154.85.147:5000/api/:splat   200!
+/api2/*      http://35.154.85.147:5001/api/:splat   200!
+
+/*           /index.html                            200
 

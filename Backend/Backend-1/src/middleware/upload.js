@@ -16,7 +16,16 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const storage = multer.memoryStorage(); // Store file in memory (buffer), not on disk
 
 const fileFilter = (req, file, cb) => {
-  if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+  const isAllowedMime = ALLOWED_MIME_TYPES.includes(file.mimetype);
+  
+  // Also check file extension (case-insensitive) for compatibility with some mobile uploads
+  const extension = file.originalname ? file.originalname.split('.').pop().toLowerCase() : '';
+  const isAllowedExt = ['pdf', 'doc', 'docx'].includes(extension);
+
+  // If MIME is standard OR (MIME is generic/octet-stream/empty and extension is valid), allow it
+  const isGenericMime = file.mimetype === 'application/octet-stream' || !file.mimetype;
+
+  if (isAllowedMime || (isGenericMime && isAllowedExt)) {
     cb(null, true);
   } else {
     cb(

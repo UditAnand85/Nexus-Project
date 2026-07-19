@@ -13,7 +13,8 @@ export function scoreOrDash(v) {
 
 export function validateResumeFile(file) {
   if (!file) return "Please choose a file.";
-  if (file.type !== "application/pdf") return "Resume must be a PDF file.";
+  const isPdf = file.type === "application/pdf" || (file.name && file.name.toLowerCase().endsWith(".pdf"));
+  if (!isPdf) return "Resume must be a PDF file.";
   if (file.size > 5 * 1024 * 1024) return "File is larger than 5MB.";
   return null;
 }

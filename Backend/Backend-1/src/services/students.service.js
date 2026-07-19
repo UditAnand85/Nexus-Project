@@ -75,16 +75,24 @@ export const submitApplication = async ({
 
   // 4.5 Upload resume to AWS S3
   let resume_url = null;
+  let resolvedMimeType = resumeMimeType;
   try {
     const fileHash = crypto.createHash('sha256').update(resumeBuffer).digest('hex');
-    const fileExtension = resumeOriginalName.split('.').pop();
+    const fileExtension = resumeOriginalName.split('.').pop().toLowerCase();
     const fileName = `resumes/${fileHash}.${fileExtension}`;
+
+    // Normalize generic/empty/incorrect mime types based on extension for compatibility
+    if (!resolvedMimeType || resolvedMimeType === 'application/octet-stream') {
+      if (fileExtension === 'pdf') resolvedMimeType = 'application/pdf';
+      else if (fileExtension === 'docx') resolvedMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      else if (fileExtension === 'doc') resolvedMimeType = 'application/msword';
+    }
     
     const command = new PutObjectCommand({
       Bucket: env.AWS_S3_BUCKET_NAME,
       Key: fileName,
       Body: resumeBuffer,
-      ContentType: resumeMimeType,
+      ContentType: resolvedMimeType,
     });
 
     await s3Client.send(command);
@@ -125,7 +133,7 @@ export const submitApplication = async ({
     await resumeQueue.add('parse_resume', {
       student_id: newStudent.student_id,
       resumeUrl: resume_url,
-      mimeType: resumeMimeType,
+      mimeType: resolvedMimeType,
       originalName: resumeOriginalName,
       formDataParams: {
         full_name,

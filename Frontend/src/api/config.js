@@ -20,16 +20,22 @@ export function setAuthToken(role, token) {
 // Admin routes (jobs CUD, candidate review) send the admin token.
 // Student routes (my applications, submitting one) send the student token.
 export async function apiFetch(path, options = {}, tokenRole = "admin") {
+  // Ensure options is never null
+  const safeOptions = options || {};
   const token = getAuthToken(tokenRole);
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
+  const targetUrl = `${API_BASE_URL}${path}`;
+
+
+  const res = await fetch(targetUrl, {
+    ...safeOptions,
     credentials: "include",
     headers: {
-      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(safeOptions.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...safeOptions.headers,
     },
   });
+
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
@@ -39,6 +45,8 @@ export async function apiFetch(path, options = {}, tokenRole = "admin") {
     } catch {
       // response wasn't JSON — keep the default message
     }
+    
+    console.error(`[apiFetch Response Error] URL: ${targetUrl} Error Message: ${message}`);
     throw new Error(message);
   }
 
