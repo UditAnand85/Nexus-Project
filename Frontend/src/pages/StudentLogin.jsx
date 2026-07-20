@@ -59,9 +59,15 @@ export default function StudentLogin({ onLoggedIn }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <div className="flex justify-end mb-4">
+          <Link to="/forgot-password?type=student" className="text-[12px] text-inksoft hover:text-ink transition">
+            Forgot password?
+          </Link>
+        </div>
         <p className="text-xs text-inksoft mb-4">
           Try <span className="font-mono">ananya.sharma@email.com</span> / <span className="font-mono">demo1234</span> for a sample account.
         </p>
+
 
         {error && <p className="text-xs text-stop mb-3">{error}</p>}
         <button onClick={submit} disabled={submitting} className="btn-primary w-full">

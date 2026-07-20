@@ -111,3 +111,50 @@ export const getMyApplications = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * POST /api/v1/auth/user/forgot-password
+ * Request a password reset email for a candidate account.
+ */
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    await userAuthService.requestUserPasswordReset(email);
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account with that email exists, a reset link has been sent.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/auth/user/reset-password
+ * Reset password using a valid reset token.
+ */
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, new_password } = req.body;
+
+    if (!token || !new_password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and new_password are required.',
+      });
+    }
+
+    await userAuthService.resetUserPassword(token, new_password);
+
+    res.status(200).json({ success: true, message: 'Password reset successfully. You can now log in.' });
+  } catch (error) {
+    next(error);
+  }
+};
+

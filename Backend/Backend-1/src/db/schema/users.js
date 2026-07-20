@@ -13,6 +13,9 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(), // bcrypt hashed
   phone: varchar('phone', { length: 20 }),
+  // Password reset
+  reset_token: varchar('reset_token', { length: 255 }),
+  reset_token_expires_at: timestamp('reset_token_expires_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at')
     .defaultNow()

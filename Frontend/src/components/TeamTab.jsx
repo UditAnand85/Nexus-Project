@@ -5,16 +5,14 @@ import { Loading, ErrorState } from "./Status";
 
 const ROLES = [
   { key: "R001", label: "Super Admin" },
-  { key: "R002", label: "HR Manager" },
-  { key: "R003", label: "Hiring Manager" },
-  { key: "R004", label: "Viewer" },
+  { key: "R002", label: "Recruiter" },
+  { key: "R003", label: "Employee" },
 ];
 
 const ROLE_BADGE = {
   R001: "bg-purple-100 text-purple-700",
   R002: "bg-blue-100 text-blue-700",
-  R003: "bg-cyan-100 text-cyan-700",
-  R004: "bg-gray-100 text-gray-600",
+  R003: "bg-emerald-100 text-emerald-700",
 };
 
 export default function TeamTab() {

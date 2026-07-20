@@ -21,4 +21,10 @@ router.post('/logout', authenticateToken, userAuthController.logout);
 // GET /api/v1/auth/user/me — Get profile
 router.get('/me', authenticateToken, userAuthController.getMe);
 
+// POST /api/v1/auth/user/forgot-password — Request password reset email
+router.post('/forgot-password', userAuthController.forgotPassword);
+
+// POST /api/v1/auth/user/reset-password — Reset password with token
+router.post('/reset-password', userAuthController.resetPassword);
+
 export default router;

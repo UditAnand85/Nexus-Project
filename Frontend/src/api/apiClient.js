@@ -60,14 +60,29 @@ export async function submitApplication(formFields, resumeFile, account) {
 
 // ---- Admin auth ----
 
-export async function adminLogin(email, password) {
+/**
+ * Step 1: Submit email + password. Triggers OTP email.
+ * Returns { otpSent: true, full_name }
+ */
+export async function adminInitiateLogin(email, password) {
   const result = await apiFetch("/auth/admin/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
+  return result.data; // { otpSent: true, full_name }
+}
+
+/**
+ * Step 2: Submit OTP. Sets session cookie and returns admin profile.
+ */
+export async function adminVerifyOTP(email, otp) {
+  const result = await apiFetch("/auth/admin/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp }),
+  });
   const admin = result.data.admin;
   localStorage.setItem("recruitai_admin_user", JSON.stringify(admin));
-  setAuthToken("admin", "session-active"); 
+  setAuthToken("admin", "session-active");
   return { admin };
 }
 
@@ -88,6 +103,21 @@ export function getStoredAdmin() {
   const adminStr = localStorage.getItem("recruitai_admin_user");
   return adminStr ? JSON.parse(adminStr) : null;
 }
+
+export async function adminForgotPassword(email) {
+  return apiFetch("/auth/admin/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function adminResetPassword(token, new_password) {
+  return apiFetch("/auth/admin/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password }),
+  });
+}
+
 
 // ---- Candidate auth ----
 
@@ -130,7 +160,22 @@ export function getStoredStudentAccount() {
   return userStr ? JSON.parse(userStr) : null;
 }
 
+export async function studentForgotPassword(email) {
+  return apiFetch("/auth/user/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function studentResetPassword(token, new_password) {
+  return apiFetch("/auth/user/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, new_password }),
+  });
+}
+
 // ---- Employee management (Super Admin) ----
+
 
 export async function getEmployees() {
   const res = await apiFetch("/employees", {}, "admin");

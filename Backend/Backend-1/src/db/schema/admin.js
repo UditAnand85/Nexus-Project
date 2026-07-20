@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, pgEnum, boolean, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, timestamp, pgEnum, boolean, uuid } from 'drizzle-orm/pg-core';
 import { roles } from './roles.js';
 
 /**
@@ -25,6 +25,9 @@ export const admin = pgTable('admin', {
   phone: varchar('phone', { length: 20 }),
   account_status: accountStatusEnum('account_status').default('Active').notNull(),
   must_change_password: boolean('must_change_password').default(false).notNull(),
+  // Password reset
+  reset_token: varchar('reset_token', { length: 255 }),
+  reset_token_expires_at: timestamp('reset_token_expires_at'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at')
     .defaultNow()

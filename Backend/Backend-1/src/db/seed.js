@@ -2,12 +2,13 @@
  * Database Seed Script
  * ====================
  * Populates the database with initial required data:
- *   1. Four default roles (Super Admin, HR Manager, Hiring Manager, Viewer)
+ *   1. Three default roles (Super Admin, Recruiter, Employee)
  *   2. A default Super Admin account
  *
  * Run with: npm run db:seed
  *
  * NOTE: Uses onConflictDoNothing() — safe to run multiple times.
+ *       Also runs a migration to reassign any legacy R004 (Viewer) accounts → R003 (Employee).
  */
 
 import 'dotenv/config';
@@ -15,6 +16,7 @@ import bcrypt from 'bcrypt';
 import { db } from '../config/db.js';
 import { roles, admin } from './schema/index.js';
 import { env } from '../config/env.js';
+import { eq } from 'drizzle-orm';
 
 const SALT_ROUNDS = 12;
 
@@ -29,20 +31,14 @@ const ROLES_DATA = [
   },
   {
     role_key: 'R002',
-    role_name: 'HR Manager',
+    role_name: 'Recruiter',
     description: 'Can create, update, delete, and view job postings. Manages candidate shortlisting.',
     is_active: true,
   },
   {
     role_key: 'R003',
-    role_name: 'Hiring Manager',
-    description: 'Can create, update, delete, and view job postings. Reviews shortlisted candidates.',
-    is_active: true,
-  },
-  {
-    role_key: 'R004',
-    role_name: 'Viewer',
-    description: 'Read-only access to job postings and evaluation results. Cannot make any changes.',
+    role_name: 'Employee',
+    description: 'View-only access to job postings and evaluation results. Cannot make any changes.',
     is_active: true,
   },
 ];
@@ -90,19 +86,19 @@ const seedEmployees = async () => {
 
   const employees = [
     {
-      full_name: 'Jane HR',
+      full_name: 'Jane Recruiter',
       email: 'jane.hr@recruitai.com',
       password: hashedPassword,
-      role_key: 'R002', // HR Manager
+      role_key: 'R002', // Recruiter
       department: 'Human Resources',
       phone: '555-0201',
       account_status: 'Active',
     },
     {
-      full_name: 'Mark Hiring',
+      full_name: 'Mark Employee',
       email: 'mark.hiring@recruitai.com',
       password: hashedPassword,
-      role_key: 'R003', // Hiring Manager
+      role_key: 'R003', // Employee
       department: 'Engineering',
       phone: '555-0202',
       account_status: 'Active',
@@ -124,11 +120,36 @@ const seedEmployees = async () => {
   }
 };
 
+// ─── Migrate legacy R004 (Viewer) → R003 (Employee) ──────────────────────────
+
+const migrateRoles = async () => {
+  console.log('🔄  Migrating legacy roles...');
+
+  // Reassign any existing R004 admins to R003 (Employee)
+  const migrated = await db
+    .update(admin)
+    .set({ role_key: 'R003' })
+    .where(eq(admin.role_key, 'R004'))
+    .returning({ email: admin.email });
+
+  if (migrated.length > 0) {
+    console.log(`✅  Migrated ${migrated.length} admin(s) from R004 → R003:`);
+    migrated.forEach((a) => console.log(`    - ${a.email}`));
+  } else {
+    console.log('✅  No R004 accounts to migrate.');
+  }
+
+  // Remove the legacy R004 role if it still exists
+  await db.delete(roles).where(eq(roles.role_key, 'R004'));
+  console.log('✅  Legacy R004 (Viewer) role removed (if it existed).');
+};
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const main = async () => {
   try {
     console.log('\n🌱  Starting database seed...\n');
+    await migrateRoles();   // Must run before seedRoles to avoid FK conflicts
     await seedRoles();
     await seedSuperAdmin();
     await seedEmployees();
