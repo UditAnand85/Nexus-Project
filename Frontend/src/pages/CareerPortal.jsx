@@ -6,7 +6,7 @@ import { Loading, ErrorState } from "../components/Status";
 
 export default function CareerPortal() {
   const navigate = useNavigate();
-  const { data: jobs, loading, error, refetch } = useApi(() => getJobs(), []);
+  const { data: jobs, loading, error, refetch } = useApi(() => getJobs("Open"), []);
 
   return (
     <div className="max-w-[1080px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-24">

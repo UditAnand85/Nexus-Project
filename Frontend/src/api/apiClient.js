@@ -8,8 +8,9 @@ import { apiFetch, setAuthToken } from "./config";
 
 // ---- Reads ----
 
-export async function getJobs() {
-  const res = await apiFetch("/jobs");
+export async function getJobs(status) {
+  const url = status ? `/jobs?status=${status}` : "/jobs";
+  const res = await apiFetch(url);
   return res.data;
 }
 

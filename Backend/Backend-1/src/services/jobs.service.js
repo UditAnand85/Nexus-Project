@@ -11,8 +11,8 @@ import { questionsQueue } from '../queues/questions.queue.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
 
-export const getAllJobs = async () => {
-  return await db
+export const getAllJobs = async (status) => {
+  let query = db
     .select({
       job_id: jobs.job_id,
       job_title: jobs.job_title,
@@ -35,7 +35,13 @@ export const getAllJobs = async () => {
     })
     .from(jobs)
     .leftJoin(students, eq(jobs.job_id, students.job_id))
-    .leftJoin(admin, eq(jobs.created_by, admin.admin_id))
+    .leftJoin(admin, eq(jobs.created_by, admin.admin_id));
+
+  if (status) {
+    query = query.where(eq(jobs.job_status, status));
+  }
+
+  return await query
     .groupBy(jobs.job_id, admin.full_name)
     .orderBy(desc(jobs.created_at));
 };

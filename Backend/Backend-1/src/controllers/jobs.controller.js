@@ -6,7 +6,8 @@ import * as jobsService from '../services/jobs.service.js';
  */
 export const getAllJobs = async (req, res, next) => {
   try {
-    const jobs = await jobsService.getAllJobs();
+    const { status } = req.query;
+    const jobs = await jobsService.getAllJobs(status);
     res.status(200).json({ success: true, count: jobs.length, data: jobs });
   } catch (error) {
     next(error);
