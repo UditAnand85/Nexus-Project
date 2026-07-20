@@ -39,6 +39,12 @@ export const env = Object.freeze({
 
   // CORS
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
+  PRIMARY_CLIENT_URL: (() => {
+    const raw = process.env.CLIENT_URL || 'http://localhost:5173';
+    const urls = raw.split(',').map((url) => url.trim());
+    const httpsUrl = urls.find((url) => url.startsWith('https://'));
+    return httpsUrl || urls[0] || 'http://localhost:5173';
+  })(),
 
   // Backend-2
   BACKEND2_URL: process.env.BACKEND2_URL || 'http://localhost:5001',

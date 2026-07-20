@@ -236,7 +236,7 @@ export const startEvaluation = async (jobId) => {
       .innerJoin(students, eq(shortlistedStudents.student_id, students.student_id))
       .where(eq(students.job_id, jobId));
 
-    const clientUrl = env.CLIENT_URL || 'http://localhost:5173';
+    const clientUrl = env.PRIMARY_CLIENT_URL;
 
     for (const candidate of shortlisted) {
       // Sign a JWT valid for 7 days

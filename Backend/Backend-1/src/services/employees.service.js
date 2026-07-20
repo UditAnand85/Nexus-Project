@@ -79,7 +79,7 @@ export const createEmployee = async ({ full_name, email, role_key, account_statu
  * Includes their temporary password and instructs them to change it on first login.
  */
 export const sendAdminWelcomeEmail = async ({ full_name, email, role_name, tempPassword }) => {
-  const loginUrl = `${env.CLIENT_URL}/admin-login`;
+  const loginUrl = `${env.PRIMARY_CLIENT_URL}/admin-login`;
 
   const emailHtml = `
     <!DOCTYPE html>
