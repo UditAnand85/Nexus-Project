@@ -15,10 +15,13 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import JobCreate from "./pages/JobCreate";
 import JobCandidates from "./pages/JobCandidates";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { getStudentDetail, getStoredStudentAccount, studentLogout, adminLogout, getAdminMe, getStudentMe, getStoredAdmin } from "./api/apiClient";
 import { checkBackendHealth } from "./api/config";
 import { useApi } from "./utils/useApi";
 import { BackendOfflineBanner } from "./components/Status";
+
 
 export default function App() {
   const navigate = useNavigate();
@@ -101,6 +104,9 @@ export default function App() {
           if (admin?.must_change_password) navigate("/admin/change-password");
           else navigate("/admin/dashboard");
         }} />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
 
         {/* Candidate Protected Routes */}
         <Route path="/apply/:id" element={
