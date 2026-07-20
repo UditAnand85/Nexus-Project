@@ -64,12 +64,39 @@ def extract_text_node(state: ResumeState) -> dict:
         logger.error(f"Error extracting text: {e}")
         return {"error": f"Failed to extract text: {str(e)}"}
 
+def _looks_like_resume(text: str) -> bool:
+    """
+    Lightweight heuristic: check if the extracted text contains at least a few
+    common resume-related keywords. If none are found, we treat the document
+    as a non-resume / wrong file.
+    """
+    RESUME_KEYWORDS = [
+        "experience", "education", "skills", "work", "project",
+        "internship", "employment", "qualification", "objective",
+        "summary", "certification", "achievement", "university",
+        "college", "degree", "bachelor", "master", "gpa",
+        "resume", "curriculum vitae", "cv", "profile", "contact",
+        "email", "phone", "linkedin", "github",
+    ]
+    lowered = text.lower()
+    return any(kw in lowered for kw in RESUME_KEYWORDS)
+
+
 def generate_summary_node(state: ResumeState) -> dict:
     logger.info("Generating summary using Groq...")
     if state.get("error"):
         return {"error": state["error"]}
-        
+
     text = state.get("resume_text", "")
+
+    # ── Non-resume / wrong document guard ───────────────────────────────────
+    if not _looks_like_resume(text):
+        logger.warning("Document does not appear to be a resume. Skipping AI summary.")
+        return {
+            "parsed_resume_json": "⚠️ This document doesn't look like a resume. Wrong document.",
+        }
+    # ────────────────────────────────────────────────────────────────────────
+
     prompt = f"""
     You are an expert technical recruiter. Based on the following candidate resume and the job description, 
     extract a short summary in bullet points detailing the strongest points about the candidate and why we should hire them for this specific role.
@@ -98,12 +125,22 @@ def generate_summary_node(state: ResumeState) -> dict:
         logger.error(f"Error generating summary: {e}")
         return {"error": f"Summary generation failed: {str(e)}"}
 
+
+
 def check_scores_node(state: ResumeState) -> dict:
     logger.info("Checking scores using Gemini...")
     if state.get("error"):
         return {"error": state["error"]}
-        
+
     text = state.get("resume_text", "")
+
+    # ── Non-resume / wrong document guard ───────────────────────────────────
+    if not _looks_like_resume(text):
+        logger.warning("Document does not appear to be a resume. Assigning score 0.")
+        return {"resume_score": 0.0}
+    # ────────────────────────────────────────────────────────────────────────
+
+
     prompt = f"""
     You are an expert ATS (Applicant Tracking System) scorer. Score the following resume out of 100 based on the following default criteria and the provided job description:
     Skills Match – 30 Marks
