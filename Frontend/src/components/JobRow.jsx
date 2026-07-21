@@ -27,7 +27,7 @@ export default function JobRow({ job, onClick, adminMeta = false, admin = null, 
         <div className="font-serif text-xl font-medium">{job.job_title}</div>
         <div className="text-[13px] text-inksoft mt-1">
           {adminMeta
-            ? `${job.job_id} · ${job.openings} opening${job.openings > 1 ? "s" : ""} · ${job.applicants_count || 0} applicant${job.applicants_count !== 1 ? "s" : ""} · created by ${job.created_by_name || job.created_by}`
+            ? `${job.openings} opening${job.openings > 1 ? "s" : ""} · ${job.applicants_count || 0} applicant${job.applicants_count !== 1 ? "s" : ""} · created by ${job.created_by_name || job.created_by}`
             : `${job.employment_type} · ${job.job_location} · ${job.expected_ctc} · ${job.openings} opening${job.openings > 1 ? "s" : ""} · ${job.applicants_count || 0} applicant${job.applicants_count !== 1 ? "s" : ""}`}
         </div>
       </div>

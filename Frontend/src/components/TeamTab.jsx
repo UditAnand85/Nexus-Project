@@ -82,10 +82,7 @@ export default function TeamTab() {
             <p className="text-inksoft text-sm text-center py-10">No employees found.</p>
           )}
           {employees.map((emp) => (
-            <div
-              key={emp.admin_id}
-              className="flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_130px_120px_110px] sm:gap-4 px-5 py-4 border-b border-line last:border-b-0 sm:items-center"
-            >
+            <div>
               <div>
                 <div className="text-[15px] font-medium flex items-center gap-2 flex-wrap">
                   {emp.full_name}
