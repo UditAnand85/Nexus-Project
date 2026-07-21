@@ -39,7 +39,7 @@ export default function MyApplications({ account, onLogout }) {
               review: "bg-[#EEF0EE] text-inksoft",
             };
             return (
-              <div key={app.student_id} className="grid grid-cols-[1fr_auto] gap-3 sm:gap-4 items-center py-4 sm:py-5 border-b border-line">
+              <div>
                 <div>
                   <div className="font-serif text-lg font-medium">{app.job_title}</div>
                 </div>
