@@ -42,7 +42,6 @@ export default function MyApplications({ account, onLogout }) {
               <div key={app.student_id} className="grid grid-cols-[1fr_auto] gap-3 sm:gap-4 items-center py-4 sm:py-5 border-b border-line">
                 <div>
                   <div className="font-serif text-lg font-medium">{app.job_title}</div>
-                  <div className="text-xs text-inksoft mt-0.5">{app.student_id}</div>
                 </div>
                 <div className="flex justify-end">
                   <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${pillStyles[info.cls]}`}>
