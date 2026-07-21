@@ -1,5 +1,6 @@
 import * as studentsService from '../services/students.service.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { validateEmail, validatePhone } from '../utils/validation.js';
 
 /**
  * POST /api/v1/students/apply/:jobId
@@ -13,6 +14,14 @@ export const submitApplication = async (req, res, next) => {
 
     if (!full_name || !email) {
       return next(new AppError('Full name and email are required.', 400));
+    }
+
+    if (!validateEmail(email)) {
+      return next(new AppError('Please provide a valid email address.', 400));
+    }
+
+    if (phone && !validatePhone(phone)) {
+      return next(new AppError('Phone number must contain between 10 and 20 digits.', 400));
     }
 
     if (!jobId) {

@@ -24,9 +24,13 @@ export function validatePassword(pw) {
 }
 
 export function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
 }
 
 export function validatePhone(phone) {
-  return /^[+\d][\d\s-]{7,}$/.test(phone);
+  if (!phone) return false;
+  const digitsOnly = phone.replace(/\D/g, "");
+  return digitsOnly.length >= 10 && digitsOnly.length <= 20;
 }
+

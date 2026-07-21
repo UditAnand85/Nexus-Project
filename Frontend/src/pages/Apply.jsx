@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { submitApplication, getJob } from "../api/apiClient";
-import { validateResumeFile } from "../utils/format";
+import { validateResumeFile, validateEmail, validatePhone } from "../utils/format";
 import { useApi } from "../utils/useApi";
 import { Loading, ErrorState } from "../components/Status";
 
@@ -48,8 +48,8 @@ export default function Apply({ account, onSubmitted }) {
   const validate = () => {
     const next = {};
     if (!form.full_name.trim()) next.full_name = "Enter your full name.";
-    if (!form.email.trim()) next.email = "Enter your email.";
-    if (!form.phone.trim()) next.phone = "Enter your phone number.";
+    if (!validateEmail(form.email)) next.email = "Enter a valid email address.";
+    if (!validatePhone(form.phone)) next.phone = "Phone number must be 10-20 digits.";
     if (!file) next.resume = "Upload your resume as a PDF.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -84,13 +84,13 @@ export default function Apply({ account, onSubmitted }) {
 
       <div className="bg-panel border border-line rounded-xl shadow-sm p-5 sm:p-9 max-w-[560px] w-full mt-6">
         <Field label="Name" error={errors.full_name}>
-          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} />
+          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={255} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} />
+          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={255} />
         </Field>
         <Field label="Phone number" error={errors.phone}>
-          <input className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} />
+          <input className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} maxLength={20} />
         </Field>
 
         <Field label="Resume (upload PDF)" error={errors.resume}>

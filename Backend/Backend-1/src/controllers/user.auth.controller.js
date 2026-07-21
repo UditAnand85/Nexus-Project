@@ -1,4 +1,5 @@
 import * as userAuthService from '../services/user.auth.service.js';
+import { validateEmail, validatePhone } from '../utils/validation.js';
 
 // ─── Cookie Settings ──────────────────────────────────────────────────────────
 // secure: true only in production (HTTPS). On localhost (http) browsers silently
@@ -24,6 +25,20 @@ export const register = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Full name, email, and password are required.',
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
+
+    if (phone && !validatePhone(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number must contain between 10 and 20 digits.',
       });
     }
 
