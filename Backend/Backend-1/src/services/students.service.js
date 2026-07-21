@@ -288,10 +288,6 @@ export const sendManualEmail = async (studentId, action) => {
   const student = await getStudentById(studentId);
   const job = (await db.select().from(jobs).where(eq(jobs.job_id, student.job_id)).limit(1))[0];
 
-  if (!student.shortlisted_id) {
-    throw new AppError('Cannot send email. Student is not shortlisted.', 400);
-  }
-
   let emailSubject = '';
   let emailHtml = '';
   let newStage = '';
@@ -325,11 +321,36 @@ export const sendManualEmail = async (studentId, action) => {
     throw new AppError('Invalid email action. Use "invite" or "reject".', 400);
   }
 
-  // Update current stage in DB
+  // Update or insert in shortlisted_students table
+  let shortlistedId = student.shortlisted_id;
+  if (!shortlistedId) {
+    const [inserted] = await db
+      .insert(shortlistedStudents)
+      .values({
+        student_id: studentId,
+        current_stage: newStage,
+      })
+      .returning({ shortlisted_id: shortlistedStudents.shortlisted_id });
+    shortlistedId = inserted.shortlisted_id;
+  } else {
+    await db
+      .update(shortlistedStudents)
+      .set({ current_stage: newStage, updated_at: new Date() })
+      .where(eq(shortlistedStudents.shortlisted_id, shortlistedId));
+  }
+
+  // Update students table application status
+  let nextAppStatus = student.application_status;
+  if (action === 'invite') {
+    nextAppStatus = 'Shortlisted';
+  } else if (action === 'reject') {
+    nextAppStatus = 'Rejected';
+  }
+
   await db
-    .update(shortlistedStudents)
-    .set({ current_stage: newStage, updated_at: new Date() })
-    .where(eq(shortlistedStudents.shortlisted_id, student.shortlisted_id));
+    .update(students)
+    .set({ application_status: nextAppStatus })
+    .where(eq(students.student_id, studentId));
 
   // Send the email
   const emailCommand = new SendEmailCommand({
