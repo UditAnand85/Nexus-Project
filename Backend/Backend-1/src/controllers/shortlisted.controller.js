@@ -77,3 +77,33 @@ export const processResult = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * PATCH /api/v1/shortlisted/status
+ * Admin: Manually update candidate status (invite to shortlist or reject) before shortlisting closes,
+ * regardless of resume cutoff score.
+ *
+ * Body: { student_id, action: 'Shortlisted' | 'Rejected' }
+ */
+export const updateCandidateStatus = async (req, res, next) => {
+  try {
+    const { student_id, action } = req.body;
+
+    if (!student_id || !['Shortlisted', 'Rejected'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "student_id and valid action ('Shortlisted' or 'Rejected') are required.",
+      });
+    }
+
+    const result = await shortlistedService.updateCandidateStatus({ student_id, action });
+
+    res.status(200).json({
+      success: true,
+      message: `Candidate status updated to '${action}' successfully.`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

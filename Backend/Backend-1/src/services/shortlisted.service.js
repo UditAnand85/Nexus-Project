@@ -117,3 +117,68 @@ export const processResult = async ({
 
   return { student_id, resume_score: score, application_status: finalStatus };
 };
+
+// ─── Manual Status Update (Invite / Reject override) ─────────────────────────
+
+/**
+ * Allows admin to manually invite (shortlist) or reject a candidate before
+ * shortlisting is closed for a job, regardless of their resume score.
+ *
+ * @param {Object} params
+ * @param {string} params.student_id
+ * @param {'Shortlisted' | 'Rejected'} params.action
+ */
+export const updateCandidateStatus = async ({ student_id, action }) => {
+  // 1. Fetch candidate and job status
+  const studentResult = await db
+    .select({
+      student_id: students.student_id,
+      job_id: students.job_id,
+      application_status: students.application_status,
+      job_status: jobs.job_status,
+    })
+    .from(students)
+    .leftJoin(jobs, eq(students.job_id, jobs.job_id))
+    .where(eq(students.student_id, student_id))
+    .limit(1);
+
+  if (studentResult.length === 0) {
+    throw new AppError(`Student with ID ${student_id} not found.`, 404);
+  }
+
+  const { job_status } = studentResult[0];
+
+  // 2. Ensure shortlisting is not closed for this job
+  if (job_status === 'Shortlisting Closed' || job_status === 'Evaluation Started' || job_status === 'Results Processed') {
+    throw new AppError('Cannot modify candidate status after shortlisting has been closed.', 400);
+  }
+
+  // 3. Update student application status
+  await db
+    .update(students)
+    .set({ application_status: action })
+    .where(eq(students.student_id, student_id));
+
+  // 4. Update or insert into shortlisted_students if action is Shortlisted, or remove if Rejected
+  if (action === 'Shortlisted') {
+    const existing = await db
+      .select({ shortlisted_id: shortlistedStudents.shortlisted_id })
+      .from(shortlistedStudents)
+      .where(eq(shortlistedStudents.student_id, student_id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(shortlistedStudents).values({
+        student_id,
+        current_stage: 'Aptitude',
+        updated_at: new Date(),
+      });
+    }
+  } else if (action === 'Rejected') {
+    await db
+      .delete(shortlistedStudents)
+      .where(eq(shortlistedStudents.student_id, student_id));
+  }
+
+  return { student_id, application_status: action };
+};

@@ -22,6 +22,9 @@ router.get('/job/:jobId', authenticateAdmin, allowAnyAdmin, shortlistedControlle
 // GET /api/v1/shortlisted/:id — Specific shortlisted record
 router.get('/:id', authenticateAdmin, allowAnyAdmin, shortlistedController.getShortlistedById);
 
+// PATCH /api/v1/shortlisted/status — Admin manual override (invite/reject candidates regardless of score)
+router.patch('/status', authenticateAdmin, allowAnyAdmin, shortlistedController.updateCandidateStatus);
+
 // POST /api/v1/shortlisted/result
 // INTERNAL: Backend-2 posts AI-processed resume results here after parsing.
 // Protected by X-Internal-Api-Key header (shared secret).
