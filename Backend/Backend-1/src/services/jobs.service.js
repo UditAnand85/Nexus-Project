@@ -316,6 +316,13 @@ export const startEvaluation = async (jobId) => {
 // ─── Get Ranked Candidates ───────────────────────────────────────────────────
 
 export const getRankedStudents = async (jobId) => {
+  const [job] = await db
+    .select({ job_status: jobs.job_status })
+    .from(jobs)
+    .where(eq(jobs.job_id, jobId))
+    .limit(1);
+  const jobStatus = job?.job_status || 'Open';
+
   const result = await db
     .select({
       student_id: students.student_id,
@@ -344,11 +351,15 @@ export const getRankedStudents = async (jobId) => {
     return scoreB - scoreA;
   }).slice(0, 15);
 
-  // Assign ranks
-  return sorted.map((item, index) => ({
-    ...item,
-    rank: index + 1,
-  }));
+  // Assign ranks and conditionally hide shortlisted status
+  return sorted.map((item, index) => {
+    const finalItem = { ...item, rank: index + 1 };
+    if (jobStatus !== 'Results Processed') {
+      finalItem.application_status = 'Applied';
+      finalItem.current_stage = null;
+    }
+    return finalItem;
+  });
 };
 
 // ─── Process Results ────────────────────────────────────────────────────────

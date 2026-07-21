@@ -120,7 +120,7 @@ export const getUserById = async (userId) => {
 // ─── Get Candidate Applications ───────────────────────────────────────────────
 
 export const getMyApplications = async (email) => {
-  return await db
+  const result = await db
     .select({
       student_id: students.student_id,
       email: students.email,
@@ -132,16 +132,27 @@ export const getMyApplications = async (email) => {
       created_at: students.created_at,
       job_id: students.job_id,
       job_title: jobs.job_title,
+      job_status: jobs.job_status,
       aptitude_score: shortlistedStudents.aptitude_score,
       final_score: shortlistedStudents.final_score,
       current_stage: shortlistedStudents.current_stage,
-
     })
     .from(students)
     .innerJoin(jobs, eq(students.job_id, jobs.job_id))
     .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.email, email))
     .orderBy(desc(students.created_at));
+
+  return result.map((app) => {
+    if (app.job_status !== 'Results Processed') {
+      return {
+        ...app,
+        application_status: 'Applied',
+        current_stage: null,
+      };
+    }
+    return app;
+  });
 };
 
 // ─── Forgot Password ──────────────────────────────────────────────────────────
