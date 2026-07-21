@@ -1,4 +1,5 @@
 import * as adminAuthService from '../services/admin.auth.service.js';
+import { validateEmail } from '../utils/validation.js';
 
 // ─── Cookie Settings ──────────────────────────────────────────────────────────
 const COOKIE_OPTIONS = {
@@ -26,6 +27,13 @@ export const login = async (req, res, next) => {
       });
     }
 
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
+
     const result = await adminAuthService.initiateLogin({ email, password });
 
     res.status(200).json({
@@ -50,6 +58,13 @@ export const verifyOTP = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Email and OTP are required.',
+      });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
       });
     }
 
@@ -108,6 +123,10 @@ export const forgotPassword = async (req, res, next) => {
 
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    if (!validateEmail(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
     }
 
     await adminAuthService.requestAdminPasswordReset(email);

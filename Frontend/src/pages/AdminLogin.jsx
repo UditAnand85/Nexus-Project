@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { adminInitiateLogin, adminVerifyOTP } from "../api/apiClient";
+import { validateEmail } from "../utils/format";
 
 // Roles — 3 defined roles (R001 Super Admin, R002 Recruiter, R003 Employee)
 const ADMIN_ROLES = [
@@ -37,6 +38,10 @@ export default function AdminLogin({ onLogin }) {
   const submitCredentials = async () => {
     if (!email || !password) {
       setError("Enter your email and password.");
+      return;
+    }
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
     setSubmitting(true);
@@ -159,6 +164,7 @@ export default function AdminLogin({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitCredentials()}
+              maxLength={255}
             />
 
             <label className="text-[13px] text-inksoft block mb-1.5">Password</label>
@@ -170,6 +176,7 @@ export default function AdminLogin({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitCredentials()}
+              maxLength={25}
             />
 
             <div className="flex justify-end mb-5">

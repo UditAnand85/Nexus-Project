@@ -48,6 +48,8 @@ export default function Apply({ account, onSubmitted }) {
   const validate = () => {
     const next = {};
     if (!form.full_name.trim()) next.full_name = "Enter your full name.";
+    else if (form.full_name.length > 25) next.full_name = "Name must be 25 characters or less.";
+
     if (!validateEmail(form.email)) next.email = "Enter a valid email address.";
     if (!validatePhone(form.phone)) next.phone = "Phone number must be 10-20 digits.";
     if (!file) next.resume = "Upload your resume as a PDF.";
@@ -84,7 +86,7 @@ export default function Apply({ account, onSubmitted }) {
 
       <div className="bg-panel border border-line rounded-xl shadow-sm p-5 sm:p-9 max-w-[560px] w-full mt-6">
         <Field label="Name" error={errors.full_name}>
-          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={255} />
+          <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={25} />
         </Field>
         <Field label="Email" error={errors.email}>
           <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={255} />

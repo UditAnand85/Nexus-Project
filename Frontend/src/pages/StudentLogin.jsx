@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { studentLogin } from "../api/apiClient";
+import { validateEmail } from "../utils/format";
 
 export default function StudentLogin({ onLoggedIn }) {
   const navigate = useNavigate();
@@ -13,6 +14,10 @@ export default function StudentLogin({ onLoggedIn }) {
   const submit = async () => {
     if (!email || !password) {
       setError("Enter both email and password.");
+      return;
+    }
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
     setSubmitting(true);
@@ -47,6 +52,7 @@ export default function StudentLogin({ onLoggedIn }) {
           placeholder="you@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          maxLength={255}
         />
         <label className="text-[13px] text-inksoft block mb-1.5">Password</label>
         <input
@@ -58,6 +64,7 @@ export default function StudentLogin({ onLoggedIn }) {
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          maxLength={25}
         />
         <div className="flex justify-end mb-4">
           <Link to="/forgot-password?type=student" className="text-[12px] text-inksoft hover:text-ink transition">

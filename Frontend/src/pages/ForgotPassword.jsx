@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { adminForgotPassword, studentForgotPassword } from "../api/apiClient";
+import { validateEmail } from "../utils/format";
 
 /**
  * ForgotPassword page
@@ -21,6 +22,10 @@ export default function ForgotPassword() {
   const submit = async () => {
     if (!email) {
       setError("Please enter your email address.");
+      return;
+    }
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
     setSubmitting(true);
@@ -75,6 +80,7 @@ export default function ForgotPassword() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
+              maxLength={255}
               autoFocus
             />
 

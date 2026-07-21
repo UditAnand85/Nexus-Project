@@ -15,9 +15,15 @@ export default function StudentRegister({ onRegistered }) {
   const validate = () => {
     const next = {};
     if (!form.full_name.trim()) next.full_name = "Enter your full name.";
+    else if (form.full_name.length > 25) next.full_name = "Name must be 25 characters or less.";
+
     if (!validateEmail(form.email)) next.email = "Enter a valid email address.";
+
     if (form.phone && !validatePhone(form.phone)) next.phone = "Phone number must be 10-20 digits.";
+
     if (!validatePassword(form.password)) next.password = "At least 6 characters.";
+    else if (form.password.length > 25) next.password = "Password must be 25 characters or less.";
+
     if (form.confirm !== form.password) next.confirm = "Passwords don't match.";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -47,7 +53,7 @@ export default function StudentRegister({ onRegistered }) {
         </div>
 
         <Field label="Full name" error={errors.full_name}>
-          <input type="text" name="name" id="name" autoComplete="name" className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={100} />
+          <input type="text" name="name" id="name" autoComplete="name" className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={25} />
         </Field>
         <Field label="Email" error={errors.email}>
           <input type="email" name="email" id="email" autoComplete="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={255} />
@@ -56,10 +62,10 @@ export default function StudentRegister({ onRegistered }) {
           <input type="tel" name="phone" id="phone" autoComplete="tel" className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} maxLength={20} />
         </Field>
         <Field label="Password" error={errors.password}>
-          <input type="password" name="password" id="password" autoComplete="new-password" className="field-input" placeholder="At least 6 characters" value={form.password} onChange={update("password")} maxLength={100} />
+          <input type="password" name="password" id="password" autoComplete="new-password" className="field-input" placeholder="At least 6 characters" value={form.password} onChange={update("password")} maxLength={25} />
         </Field>
         <Field label="Confirm password" error={errors.confirm}>
-          <input type="password" name="confirm_password" id="confirm_password" autoComplete="new-password" className="field-input" value={form.confirm} onChange={update("confirm")} maxLength={100} />
+          <input type="password" name="confirm_password" id="confirm_password" autoComplete="new-password" className="field-input" value={form.confirm} onChange={update("confirm")} maxLength={25} />
         </Field>
 
         {formError && <p className="text-xs text-stop mb-3">{formError}</p>}

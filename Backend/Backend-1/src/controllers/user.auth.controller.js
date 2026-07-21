@@ -69,6 +69,13 @@ export const login = async (req, res, next) => {
       });
     }
 
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
+
     const { token, user } = await userAuthService.login({ email, password });
 
     // Set JWT in httpOnly secure cookie
@@ -139,6 +146,10 @@ export const forgotPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email is required.' });
     }
 
+    if (!validateEmail(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
+    }
+
     await userAuthService.requestUserPasswordReset(email);
 
     res.status(200).json({
@@ -172,4 +183,3 @@ export const resetPassword = async (req, res, next) => {
     next(error);
   }
 };
-

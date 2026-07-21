@@ -43,6 +43,10 @@ export default function ResetPassword() {
       setError("Password must be at least 8 characters.");
       return;
     }
+    if (newPassword.length > 25) {
+      setError("Password must be 25 characters or less.");
+      return;
+    }
     if (newPassword !== confirmPassword) {
       setError("Passwords don't match.");
       return;
@@ -117,6 +121,7 @@ export default function ResetPassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
+            maxLength={25}
             autoFocus
           />
           <button
@@ -143,6 +148,7 @@ export default function ResetPassword() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
+          maxLength={25}
         />
 
         {/* Strength hint */}
