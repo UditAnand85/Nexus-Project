@@ -24,7 +24,7 @@ export default function CandidateDrawer({ student, job, onClose }) {
             </button>
             <h2 className="text-2xl">{student.full_name}</h2>
             <div className="text-xs text-inksoft mt-0.5">
-              {student.student_id} · Applied for {job?.job_title}
+              Applied for {job?.job_title}
             </div>
 
             <div className="my-7">

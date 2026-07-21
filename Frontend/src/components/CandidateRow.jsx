@@ -40,7 +40,6 @@ export default function CandidateRow({ student, onClick, isEvaluated }) {
       <span className="hidden sm:inline font-mono text-inksoft">{student.rank}</span>
       <div className="hidden sm:block">
         <div className="font-serif text-base font-medium">{student.full_name}</div>
-        <div className="text-xs text-inksoft mt-0.5">{student.student_id}</div>
       </div>
       
       <div className="flex sm:contents gap-4 text-sm mt-1 sm:mt-0">
