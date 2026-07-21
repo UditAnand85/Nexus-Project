@@ -17,7 +17,7 @@ export default function StudentLogin({ onLoggedIn }) {
       return;
     }
     if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+      setError("Please enter a valid email address (max 30 characters).");
       return;
     }
     setSubmitting(true);
@@ -52,7 +52,7 @@ export default function StudentLogin({ onLoggedIn }) {
           placeholder="you@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          maxLength={255}
+          maxLength={30}
         />
         <label className="text-[13px] text-inksoft block mb-1.5">Password</label>
         <input

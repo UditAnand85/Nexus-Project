@@ -50,7 +50,7 @@ export default function Apply({ account, onSubmitted }) {
     if (!form.full_name.trim()) next.full_name = "Enter your full name.";
     else if (form.full_name.length > 25) next.full_name = "Name must be 25 characters or less.";
 
-    if (!validateEmail(form.email)) next.email = "Enter a valid email address.";
+    if (!validateEmail(form.email)) next.email = "Enter a valid email address (max 30 characters).";
     if (!validatePhone(form.phone)) next.phone = "Phone number must be 10-20 digits.";
     if (!file) next.resume = "Upload your resume as a PDF.";
     setErrors(next);
@@ -89,7 +89,7 @@ export default function Apply({ account, onSubmitted }) {
           <input className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={25} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={255} />
+          <input type="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={30} />
         </Field>
         <Field label="Phone number" error={errors.phone}>
           <input className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} maxLength={20} />

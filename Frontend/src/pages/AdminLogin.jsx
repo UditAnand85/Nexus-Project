@@ -41,7 +41,7 @@ export default function AdminLogin({ onLogin }) {
       return;
     }
     if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+      setError("Please enter a valid email address (max 30 characters).");
       return;
     }
     setSubmitting(true);
@@ -164,7 +164,7 @@ export default function AdminLogin({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submitCredentials()}
-              maxLength={255}
+              maxLength={30}
             />
 
             <label className="text-[13px] text-inksoft block mb-1.5">Password</label>

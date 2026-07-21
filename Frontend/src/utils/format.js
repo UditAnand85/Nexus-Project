@@ -25,7 +25,7 @@ export function validatePassword(pw) {
 
 export function validateEmail(email) {
   if (!email) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 255;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 30;
 }
 
 export function validatePhone(phone) {
@@ -33,4 +33,3 @@ export function validatePhone(phone) {
   const digitsOnly = phone.replace(/\D/g, "");
   return digitsOnly.length >= 10 && digitsOnly.length <= 20;
 }
-

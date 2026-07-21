@@ -17,7 +17,7 @@ export default function StudentRegister({ onRegistered }) {
     if (!form.full_name.trim()) next.full_name = "Enter your full name.";
     else if (form.full_name.length > 25) next.full_name = "Name must be 25 characters or less.";
 
-    if (!validateEmail(form.email)) next.email = "Enter a valid email address.";
+    if (!validateEmail(form.email)) next.email = "Enter a valid email address (max 30 characters).";
 
     if (form.phone && !validatePhone(form.phone)) next.phone = "Phone number must be 10-20 digits.";
 
@@ -56,7 +56,7 @@ export default function StudentRegister({ onRegistered }) {
           <input type="text" name="name" id="name" autoComplete="name" className="field-input" placeholder="Jordan Rivera" value={form.full_name} onChange={update("full_name")} maxLength={25} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input type="email" name="email" id="email" autoComplete="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={255} />
+          <input type="email" name="email" id="email" autoComplete="email" className="field-input" placeholder="jordan@email.com" value={form.email} onChange={update("email")} maxLength={30} />
         </Field>
         <Field label="Phone" error={errors.phone}>
           <input type="tel" name="phone" id="phone" autoComplete="tel" className="field-input" placeholder="+91 90000 00000" value={form.phone} onChange={update("phone")} maxLength={20} />

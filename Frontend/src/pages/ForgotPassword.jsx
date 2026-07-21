@@ -25,7 +25,7 @@ export default function ForgotPassword() {
       return;
     }
     if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
+      setError("Please enter a valid email address (max 30 characters).");
       return;
     }
     setSubmitting(true);
@@ -80,7 +80,7 @@ export default function ForgotPassword() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && submit()}
-              maxLength={255}
+              maxLength={30}
               autoFocus
             />
 
