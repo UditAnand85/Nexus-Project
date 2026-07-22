@@ -41,8 +41,8 @@ export default function MyApplications({ account, onLogout }) {
             return (
               <div>
                 <div>
-                  <div className="font-serif text-lg font-medium">{app.job_title}</div>
                 </div>
+                <div className="font-serif text-lg font-medium">{app.job_title}</div>
                 <div className="flex justify-end">
                   <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${pillStyles[info.cls]}`}>
                     {info.label}
