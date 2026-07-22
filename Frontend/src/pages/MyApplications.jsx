@@ -42,9 +42,6 @@ export default function MyApplications({ account, onLogout }) {
               <div className="flex justify-between items-center border-b border-line py-4 px-6 last:border-b-0">
                 <div className="flex-1">
                   <div className="font-serif text-lg font-medium">{app.job_title}</div>
-                  <div className="text-sm text-inksoft mt-1">
-                    Applied on {new Date(app.applied_at).toLocaleDateString()}
-                  </div>
                 </div>
                 <div className="flex justify-end">
                   <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${pillStyles[info.cls]}`}>
