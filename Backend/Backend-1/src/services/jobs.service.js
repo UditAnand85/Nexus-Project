@@ -1,4 +1,4 @@
-import { eq, desc, sql, inArray } from 'drizzle-orm';
+import { eq, desc, sql, inArray, and } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { SendEmailCommand } from '@aws-sdk/client-ses';
 import { db } from '../config/db.js';
@@ -230,6 +230,34 @@ export const startEvaluation = async (jobId) => {
     .where(eq(jobs.job_id, jobId))
     .returning();
 
+  // ─── Ensure all manually-invited students are in shortlisted_students ────────
+  try {
+    // Fetch all students marked 'Shortlisted' for this job (via the Invite button)
+    const invitedStudents = await db
+      .select({ student_id: students.student_id })
+      .from(students)
+      .where(and(eq(students.job_id, jobId), eq(students.application_status, 'Shortlisted')));
+
+    for (const s of invitedStudents) {
+      // Check if a record already exists
+      const existing = await db
+        .select({ shortlisted_id: shortlistedStudents.shortlisted_id })
+        .from(shortlistedStudents)
+        .where(eq(shortlistedStudents.student_id, s.student_id))
+        .limit(1);
+
+      if (existing.length === 0) {
+        await db.insert(shortlistedStudents).values({
+          student_id: s.student_id,
+          current_stage: 'Shortlisted',
+        });
+        console.log(`[Evaluation] Added student ${s.student_id} to shortlisted_students for evaluation.`);
+      }
+    }
+  } catch (err) {
+    console.error('[Evaluation] Error syncing invited students to shortlisted_students:', err.message);
+  }
+
   // ─── Send evaluation emails to all shortlisted candidates ───────────────────
   try {
     const shortlisted = await db
@@ -344,18 +372,22 @@ export const getRankedStudents = async (jobId) => {
     .leftJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.job_id, jobId));
 
-  // Sort by resume_score descending (place nulls at the end)
+  // Sort: shortlisted first, then by resume_score descending (nulls at end)
   const sorted = result.sort((a, b) => {
+    // Shortlisted candidates always appear first
+    const aShortlisted = a.application_status === 'Shortlisted' ? 1 : 0;
+    const bShortlisted = b.application_status === 'Shortlisted' ? 1 : 0;
+    if (bShortlisted !== aShortlisted) return bShortlisted - aShortlisted;
+    // Within the same group, sort by resume_score descending
     const scoreA = a.resume_score ? parseFloat(a.resume_score) : 0;
     const scoreB = b.resume_score ? parseFloat(b.resume_score) : 0;
     return scoreB - scoreA;
   }).slice(0, 15);
 
-  // Assign ranks and conditionally hide shortlisted status
+  // Assign ranks; hide current_stage (not application_status) until results are processed
   return sorted.map((item, index) => {
     const finalItem = { ...item, rank: index + 1 };
     if (jobStatus !== 'Results Processed') {
-      finalItem.application_status = 'Applied';
       finalItem.current_stage = null;
     }
     return finalItem;

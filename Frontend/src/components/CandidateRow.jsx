@@ -23,13 +23,17 @@ function StagePill({ stage }) {
   );
 }
 
-export default function CandidateRow({ student, onClick, isEvaluated }) {
+export default function CandidateRow({ student, onClick, isEvaluated, highlighted }) {
   const stage = student.current_stage || student.application_status || (isEvaluated ? "Pending" : "Applied");
 
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col sm:grid ${isEvaluated ? 'sm:grid-cols-[34px_1.4fr_90px_90px_110px]' : 'sm:grid-cols-[34px_1.4fr_90px_110px]'} gap-2 sm:gap-3.5 items-start sm:items-center py-4 px-1.5 border-b border-line cursor-pointer hover:bg-panel hover:rounded-lg hover:shadow-sm`}
+      className={`flex flex-col sm:grid ${isEvaluated ? 'sm:grid-cols-[34px_1.4fr_90px_90px_110px]' : 'sm:grid-cols-[34px_1.4fr_90px_110px]'} gap-2 sm:gap-3.5 items-start sm:items-center py-4 px-4 sm:px-4 border-b last:border-b-0 cursor-pointer transition-colors ${
+        highlighted
+          ? 'border-go/20 hover:bg-go/10'
+          : 'border-line hover:bg-panel hover:rounded-lg hover:shadow-sm'
+      }`}
     >
       <div className="flex gap-2 items-center sm:hidden">
         <span className="font-mono text-inksoft">{student.rank}</span>
@@ -60,5 +64,6 @@ export default function CandidateRow({ student, onClick, isEvaluated }) {
     </div>
   );
 }
+
 
 export { scoreOrDash };
