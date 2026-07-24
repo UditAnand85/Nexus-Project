@@ -15,18 +15,18 @@ export default function JobCandidates({ onOpenCandidate }) {
   const isEvaluated = job?.job_status === 'Evaluation Started' || job?.job_status === 'Results Processed';
   const isResultsProcessed = job?.job_status === 'Results Processed';
 
-  // Split into shortlisted (manually invited) and regular candidates
-  // Only show the shortlisted section if results have NOT been processed yet
-  const shortlistedCandidates = (!isResultsProcessed && ranked)
-    ? ranked.filter((s) => s.application_status === 'Shortlisted')
+  // Split into invited (manually invited) and regular candidates
+  // Only show the invited section if results have NOT been processed yet
+  const invitedCandidates = (!isResultsProcessed && ranked)
+    ? ranked.filter((s) => s.current_stage === 'Invited')
     : [];
   const regularCandidates = ranked
-    ? (shortlistedCandidates.length > 0
-        ? ranked.filter((s) => s.application_status !== 'Shortlisted')
+    ? (invitedCandidates.length > 0
+        ? ranked.filter((s) => s.current_stage !== 'Invited')
         : ranked)
     : [];
 
-  const hasShortlisted = shortlistedCandidates.length > 0;
+  const hasInvited = invitedCandidates.length > 0;
 
   const gridCols = isEvaluated
     ? 'sm:grid-cols-[34px_1.4fr_90px_90px_110px]'
@@ -90,22 +90,22 @@ export default function JobCandidates({ onOpenCandidate }) {
 
       {ranked && (
         <>
-          {/* ── Shortlisted Section ─────────────────────────────────────────── */}
-          {hasShortlisted && (
+          {/* ── Invited Section ─────────────────────────────────────────── */}
+          {hasInvited && (
             <div className="mb-8">
               {/* Section header */}
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-go animate-pulse inline-block" />
                   <span className="font-mono text-[11px] uppercase tracking-wider text-go font-semibold">
-                    Shortlisted — {shortlistedCandidates.length} candidate{shortlistedCandidates.length !== 1 ? 's' : ''}
+                    Invited — {invitedCandidates.length} candidate{invitedCandidates.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div className="flex-1 h-px bg-go/20" />
                 <span className="font-mono text-[10px] text-inksoft">Manually invited via Invite button</span>
               </div>
 
-              {/* Shortlisted candidates table */}
+              {/* Invited candidates table */}
               <div className="bg-gosoft/40 border border-go/20 rounded-xl overflow-hidden">
                 {/* Header row */}
                 <div className={`hidden sm:grid ${gridCols} gap-3.5 py-2.5 px-4 border-b border-go/20 font-mono text-[11px] uppercase tracking-wide text-go/70`}>
@@ -115,7 +115,7 @@ export default function JobCandidates({ onOpenCandidate }) {
                 </div>
                 {/* Rows */}
                 <div>
-                  {shortlistedCandidates.map((s) => (
+                  {invitedCandidates.map((s) => (
                     <CandidateRow
                       key={s.student_id}
                       student={s}
@@ -131,7 +131,7 @@ export default function JobCandidates({ onOpenCandidate }) {
 
           {/* ── All Candidates Section ──────────────────────────────────────── */}
           <div>
-            {hasShortlisted && (
+            {hasInvited && (
               <div className="flex items-center gap-3 mb-3">
                 <span className="font-mono text-[11px] uppercase tracking-wider text-inksoft font-semibold">
                   Other Candidates
@@ -151,11 +151,11 @@ export default function JobCandidates({ onOpenCandidate }) {
               {regularCandidates.map((s) => (
                 <CandidateRow key={s.student_id} student={s} onClick={() => onOpenCandidate(s.student_id)} isEvaluated={isEvaluated} />
               ))}
-              {regularCandidates.length === 0 && !hasShortlisted && (
+              {regularCandidates.length === 0 && !hasInvited && (
                 <p className="text-inksoft text-sm py-8 text-center">No applicants for this job yet.</p>
               )}
-              {regularCandidates.length === 0 && hasShortlisted && (
-                <p className="text-inksoft text-sm py-8 text-center">All candidates have been shortlisted.</p>
+              {regularCandidates.length === 0 && hasInvited && (
+                <p className="text-inksoft text-sm py-8 text-center">All candidates have been invited.</p>
               )}
             </div>
           </div>

@@ -230,110 +230,159 @@ export const startEvaluation = async (jobId) => {
     .where(eq(jobs.job_id, jobId))
     .returning();
 
-  // ─── Ensure all manually-invited students are in shortlisted_students ────────
+  // ─── Ensure ATS-shortlisted students (not manually invited) are in shortlisted_students ──
   try {
-    // Fetch all students marked 'Shortlisted' for this job (via the Invite button)
-    const invitedStudents = await db
+    // Fetch all students marked 'Shortlisted' via ATS for this job
+    const atsShortlisted = await db
       .select({ student_id: students.student_id })
       .from(students)
       .where(and(eq(students.job_id, jobId), eq(students.application_status, 'Shortlisted')));
 
-    for (const s of invitedStudents) {
+    for (const s of atsShortlisted) {
       // Check if a record already exists
       const existing = await db
-        .select({ shortlisted_id: shortlistedStudents.shortlisted_id })
+        .select({ shortlisted_id: shortlistedStudents.shortlisted_id, current_stage: shortlistedStudents.current_stage })
         .from(shortlistedStudents)
         .where(eq(shortlistedStudents.student_id, s.student_id))
         .limit(1);
 
       if (existing.length === 0) {
+        // No record → ATS-shortlisted, add for quiz
         await db.insert(shortlistedStudents).values({
           student_id: s.student_id,
           current_stage: 'Shortlisted',
         });
-        console.log(`[Evaluation] Added student ${s.student_id} to shortlisted_students for evaluation.`);
+        console.log(`[Evaluation] Added ATS-shortlisted student ${s.student_id} to shortlisted_students.`);
       }
+      // If record exists with current_stage='Invited', leave it as is — they skip the quiz
     }
   } catch (err) {
-    console.error('[Evaluation] Error syncing invited students to shortlisted_students:', err.message);
+    console.error('[Evaluation] Error syncing ATS-shortlisted students:', err.message);
   }
 
-  // ─── Send evaluation emails to all shortlisted candidates ───────────────────
+  // ─── Fetch all shortlisted_students records for this job ────────────────────
+  // Split into: 'Invited' (direct recruitment email) vs others (quiz email)
   try {
-    const shortlisted = await db
+    const allShortlisted = await db
       .select({
         student_id: students.student_id,
         full_name: students.full_name,
         email: students.email,
+        current_stage: shortlistedStudents.current_stage,
       })
       .from(shortlistedStudents)
       .innerJoin(students, eq(shortlistedStudents.student_id, students.student_id))
       .where(eq(students.job_id, jobId));
 
     const clientUrl = env.PRIMARY_CLIENT_URL;
+    let quizEmailCount = 0;
+    let inviteEmailCount = 0;
 
-    for (const candidate of shortlisted) {
-      // Sign a JWT valid for 7 days
-      const token = jwt.sign(
-        { student_id: candidate.student_id, job_id: jobId },
-        env.JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-
-      const evaluationUrl = `${clientUrl}/evaluate?token=${token}`;
-
-      const emailHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: #ffffff;">
-          <div style="margin-bottom: 32px;">
-            <div style="display: inline-flex; align-items: center; gap: 8px;">
-              <div style="width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
-                <span style="color: white; font-family: monospace; font-size: 11px; font-weight: 600;">RA</span>
+    for (const candidate of allShortlisted) {
+      if (candidate.current_stage === 'Invited') {
+        // ── Already personally invited by admin — send a confirmation email ──
+        const confirmHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: #ffffff;">
+            <div style="margin-bottom: 32px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                  <span style="color: white; font-family: monospace; font-size: 11px; font-weight: 600;">RA</span>
+                </div>
+                <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">RecruitAI</span>
               </div>
-              <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">RecruitAI</span>
             </div>
+
+            <h1 style="font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 8px;">Your interview invitation is confirmed 🎉</h1>
+            <p style="font-size: 15px; color: #555; margin: 0 0 24px; line-height: 1.6;">
+              Hi <strong>${candidate.full_name}</strong>, this is a reminder that you have been personally invited by our recruitment team for a physical interview for the <strong>${job.job_title}</strong> role.
+            </p>
+            <p style="font-size: 14px; color: #555; line-height: 1.6;">
+              Our team will be in touch shortly to confirm the date and time. Please keep an eye on this email address.
+            </p>
+            <p style="font-size: 13px; color: #888; margin-top: 32px;">Best regards,<br>The RecruitAI Recruitment Team</p>
           </div>
+        `;
 
-          <h1 style="font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 8px;">You've been shortlisted! 🎉</h1>
-          <p style="font-size: 15px; color: #555; margin: 0 0 24px; line-height: 1.6;">
-            Hi <strong>${candidate.full_name}</strong>, congratulations! You have been shortlisted for the role of
-            <strong>${job.job_title}</strong>. The next step is your online evaluation.
-          </p>
+        const emailCommand = new SendEmailCommand({
+          Source: env.AWS_SES_FROM_EMAIL,
+          Destination: { ToAddresses: [candidate.email] },
+          Message: {
+            Subject: { Data: `Interview Invitation Confirmed — ${job.job_title}`, Charset: 'UTF-8' },
+            Body: { Html: { Data: confirmHtml, Charset: 'UTF-8' } },
+          },
+        });
 
-          <div style="background: #f8f8f7; border: 1px solid #e5e5e3; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
-            <p style="font-size: 13px; color: #888; margin: 0 0 12px; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em;">Your evaluation includes</p>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <div style="font-size: 14px; color: #1a1a1a;">🧠 &nbsp;<strong>Step 1</strong> — Aptitude Test</div>
-              <div style="font-size: 14px; color: #1a1a1a;">💻 &nbsp;<strong>Step 2</strong> — Technical Assessment</div>
-              <div style="font-size: 14px; color: #1a1a1a;">⭐ &nbsp;<strong>Step 3</strong> — Final Review</div>
+        try {
+          await sesClient.send(emailCommand);
+          inviteEmailCount++;
+          console.log(`[Evaluation] Sent interview confirmation to personally-invited candidate ${candidate.email}`);
+        } catch (err) {
+          console.error(`[Evaluation] Failed to send confirmation to ${candidate.email}:`, err.message);
+        }
+      } else {
+        // ── ATS-shortlisted candidate — send quiz evaluation email ────────────
+        const token = jwt.sign(
+          { student_id: candidate.student_id, job_id: jobId },
+          env.JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        const evaluationUrl = `${clientUrl}/evaluate?token=${token}`;
+
+        const emailHtml = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 24px; background: #ffffff;">
+            <div style="margin-bottom: 32px;">
+              <div style="display: inline-flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;">
+                  <span style="color: white; font-family: monospace; font-size: 11px; font-weight: 600;">RA</span>
+                </div>
+                <span style="font-size: 17px; font-weight: 600; color: #1a1a1a;">RecruitAI</span>
+              </div>
             </div>
+
+            <h1 style="font-size: 22px; font-weight: 600; color: #1a1a1a; margin: 0 0 8px;">You've been shortlisted! 🎉</h1>
+            <p style="font-size: 15px; color: #555; margin: 0 0 24px; line-height: 1.6;">
+              Hi <strong>${candidate.full_name}</strong>, congratulations! You have been shortlisted for the role of
+              <strong>${job.job_title}</strong>. The next step is your online evaluation.
+            </p>
+
+            <div style="background: #f8f8f7; border: 1px solid #e5e5e3; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
+              <p style="font-size: 13px; color: #888; margin: 0 0 12px; font-family: monospace; text-transform: uppercase; letter-spacing: 0.05em;">Your evaluation includes</p>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 14px; color: #1a1a1a;">🧠 &nbsp;<strong>Step 1</strong> — Aptitude Test</div>
+                <div style="font-size: 14px; color: #1a1a1a;">💻 &nbsp;<strong>Step 2</strong> — Technical Assessment</div>
+                <div style="font-size: 14px; color: #1a1a1a;">⭐ &nbsp;<strong>Step 3</strong> — Final Review</div>
+              </div>
+            </div>
+
+            <p style="font-size: 13px; color: #888; margin: 0 0 12px;">This link is unique to you and valid for <strong>7 days</strong>. Do not share it.</p>
+
+            <a href="${evaluationUrl}" style="display: inline-block; background: #1a1a1a; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">Start My Evaluation →</a>
+
+            <p style="font-size: 12px; color: #aaa; margin-top: 32px; line-height: 1.5;">If the button doesn't work, copy and paste this link: <br>${evaluationUrl}</p>
           </div>
+        `;
 
-          <p style="font-size: 13px; color: #888; margin: 0 0 12px;">This link is unique to you and valid for <strong>7 days</strong>. Do not share it.</p>
+        const emailCommand = new SendEmailCommand({
+          Source: env.AWS_SES_FROM_EMAIL,
+          Destination: { ToAddresses: [candidate.email] },
+          Message: {
+            Subject: { Data: `Action Required: Start your evaluation for ${job.job_title}`, Charset: 'UTF-8' },
+            Body: { Html: { Data: emailHtml, Charset: 'UTF-8' } },
+          },
+        });
 
-          <a href="${evaluationUrl}" style="display: inline-block; background: #1a1a1a; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-size: 14px; font-weight: 600;">Start My Evaluation →</a>
-
-          <p style="font-size: 12px; color: #aaa; margin-top: 32px; line-height: 1.5;">If the button doesn't work, copy and paste this link: <br>${evaluationUrl}</p>
-        </div>
-      `;
-
-      const emailCommand = new SendEmailCommand({
-        Source: env.AWS_SES_FROM_EMAIL,
-        Destination: { ToAddresses: [candidate.email] },
-        Message: {
-          Subject: { Data: `Action Required: Start your evaluation for ${job.job_title}`, Charset: 'UTF-8' },
-          Body: { Html: { Data: emailHtml, Charset: 'UTF-8' } },
-        },
-      });
-
-      try {
-        await sesClient.send(emailCommand);
-        console.log(`[Evaluation] Email sent successfully to ${candidate.email}`);
-      } catch (err) {
-        console.error(`[Evaluation] Failed to send email to ${candidate.email} (Is it verified in AWS Sandbox?):`, err.message);
+        try {
+          await sesClient.send(emailCommand);
+          quizEmailCount++;
+          console.log(`[Evaluation] Sent quiz email to ${candidate.email}`);
+        } catch (err) {
+          console.error(`[Evaluation] Failed to send quiz email to ${candidate.email} (Is it verified in AWS Sandbox?):`, err.message);
+        }
       }
     }
 
-    console.log(`[Evaluation] Finished processing emails for ${shortlisted.length} candidates for job ${jobId}`);
+    console.log(`[Evaluation] Done — ${quizEmailCount} quiz emails, ${inviteEmailCount} invite confirmations sent for job ${jobId}`);
   } catch (err) {
     console.error('[Evaluation] Fatal error in email dispatch block:', err.message);
   }
@@ -384,11 +433,13 @@ export const getRankedStudents = async (jobId) => {
     return scoreB - scoreA;
   }).slice(0, 15);
 
-  // Assign ranks; hide current_stage (not application_status) until results are processed
+  // Assign ranks; hide current_stage (not application_status) until results are processed, unless it is 'Invited'
   return sorted.map((item, index) => {
     const finalItem = { ...item, rank: index + 1 };
     if (jobStatus !== 'Results Processed') {
-      finalItem.current_stage = null;
+      if (item.current_stage !== 'Invited') {
+        finalItem.current_stage = null;
+      }
     }
     return finalItem;
   });
@@ -428,13 +479,17 @@ export const processJobResults = async (jobId) => {
       email: students.email,
       final_score: shortlistedStudents.final_score,
       resume_score: students.resume_score,
+      current_stage: shortlistedStudents.current_stage,
     })
     .from(students)
     .innerJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.job_id, jobId));
 
+  // Filter out candidates who are already 'Invited' (manually invited by Recruiter)
+  const evaluationCandidates = allCandidates.filter(c => c.current_stage !== 'Invited');
+
   // Sort: final_score DESC (if available), then resume_score DESC
-  const sorted = allCandidates.sort((a, b) => {
+  const sorted = evaluationCandidates.sort((a, b) => {
     const scoreA = parseFloat(a.final_score || a.resume_score || 0);
     const scoreB = parseFloat(b.final_score || b.resume_score || 0);
     return scoreB - scoreA;

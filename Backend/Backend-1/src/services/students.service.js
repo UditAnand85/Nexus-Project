@@ -293,7 +293,7 @@ export const sendManualEmail = async (studentId, action) => {
   let newStage = '';
 
   if (action === 'invite') {
-    newStage = 'Selected';
+    newStage = 'Invited';
     emailSubject = `Congratulations! Invitation to Physical Interview for ${job.job_title}`;
     emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

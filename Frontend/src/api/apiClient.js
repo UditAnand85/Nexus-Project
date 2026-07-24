@@ -207,19 +207,26 @@ export async function deleteJob(job_id) {
 }
 
 export const STAGE_LABEL = {
-  final_interview: { cls: "invited", label: "Final interview" },
-  waitlisted: { cls: "wait", label: "Waitlist" },
+  // ── Manually invited by admin ── green
+  Invited:         { cls: "invited",    label: "Invited" },
+  Selected:        { cls: "invited",    label: "Invited" },
+  final_interview: { cls: "invited",    label: "Final interview" },
+  Hired:           { cls: "invited",    label: "Hired" },
+  Completed:       { cls: "invited",    label: "Evaluated" },
 
-  rejected: { cls: "review", label: "Rejected" },
-  under_review: { cls: "review", label: "Under review" },
-  Applied: { cls: "review", label: "Applied" },
-  Shortlisted: { cls: "invited", label: "Shortlisted" },
-  Rejected: { cls: "review", label: "Rejected" },
-  Hired: { cls: "invited", label: "Hired" },
-  Completed: { cls: "invited", label: "Evaluated" },
-  Pending: { cls: "review", label: "Pending evaluation" },
-  Selected: { cls: "invited", label: "Selected" },
-  Waitlist: { cls: "wait", label: "Waitlisted" }
+  // ── ATS-shortlisted (awaiting quiz) ── yellow
+  Shortlisted:     { cls: "shortlisted", label: "Shortlisted" },
+  waitlisted:      { cls: "shortlisted", label: "Waitlist" },
+  Waitlist:        { cls: "shortlisted", label: "Waitlisted" },
+
+  // ── No action yet / default ── grey
+  Applied:         { cls: "review",     label: "Applied" },
+  Pending:         { cls: "review",     label: "Pending evaluation" },
+  under_review:    { cls: "review",     label: "Under review" },
+
+  // ── Rejected ── red
+  Rejected:        { cls: "rejected",   label: "Rejected" },
+  rejected:        { cls: "rejected",   label: "Rejected" },
 };
 
 export async function startEvaluation(job_id) {

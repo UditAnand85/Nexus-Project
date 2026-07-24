@@ -12,12 +12,13 @@ function ScoreCell({ value }) {
 function StagePill({ stage }) {
   const info = STAGE_LABEL[stage] || { cls: "review", label: stage };
   const styles = {
-    invited: "bg-gosoft text-go",
-    wait: "bg-holdsoft text-hold",
-    review: "bg-[#EEF0EE] text-inksoft",
+    invited:     "bg-gosoft text-go border border-go/20",
+    shortlisted: "bg-amber-50 text-amber-600 border border-amber-200",
+    review:      "bg-[#EEF0EE] text-inksoft border border-transparent",
+    rejected:    "bg-red-50 text-red-600 border border-red-200",
   };
   return (
-    <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${styles[info.cls]}`}>
+    <span className={`font-mono text-[11px] px-2.5 py-1.5 rounded-full text-center ${styles[info.cls] || styles.review}`}>
       {info.label}
     </span>
   );
