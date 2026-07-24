@@ -16,8 +16,8 @@ export default function JobCandidates({ onOpenCandidate }) {
   const isResultsProcessed = job?.job_status === 'Results Processed';
 
   // Split into invited (manually invited) and regular candidates
-  // Only show the invited section if results have NOT been processed yet
-  const invitedCandidates = (!isResultsProcessed && ranked)
+  // Always show the invited section on top
+  const invitedCandidates = ranked
     ? ranked.filter((s) => s.current_stage === 'Invited')
     : [];
   const regularCandidates = ranked

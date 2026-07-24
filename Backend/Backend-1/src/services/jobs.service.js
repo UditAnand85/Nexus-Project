@@ -480,13 +480,19 @@ export const processJobResults = async (jobId) => {
       final_score: shortlistedStudents.final_score,
       resume_score: students.resume_score,
       current_stage: shortlistedStudents.current_stage,
+      application_status: students.application_status,
     })
     .from(students)
     .innerJoin(shortlistedStudents, eq(students.student_id, shortlistedStudents.student_id))
     .where(eq(students.job_id, jobId));
 
-  // Filter out candidates who are already 'Invited' (manually invited by Recruiter)
-  const evaluationCandidates = allCandidates.filter(c => c.current_stage !== 'Invited');
+  // Filter out candidates who are manually 'Invited', 'Rejected', or haven't completed evaluation (final_score is null)
+  const evaluationCandidates = allCandidates.filter(
+    c => c.current_stage !== 'Invited' && 
+         c.current_stage !== 'Rejected' && 
+         c.application_status !== 'Rejected' &&
+         c.final_score !== null
+  );
 
   // Sort: final_score DESC (if available), then resume_score DESC
   const sorted = evaluationCandidates.sort((a, b) => {
@@ -537,8 +543,8 @@ export const processJobResults = async (jobId) => {
       .set({ current_stage: newStage, updated_at: new Date() })
       .where(eq(shortlistedStudents.shortlisted_id, candidate.shortlisted_id));
 
-    // Send emails for Selected and Rejected
-    if (newStage === 'Selected' || newStage === 'Rejected') {
+    // Send emails for Selected only (do not send to Rejected/Waitlisted)
+    if (newStage === 'Selected') {
       const emailCommand = new SendEmailCommand({
         Source: env.AWS_SES_FROM_EMAIL,
         Destination: { ToAddresses: [candidate.email] },

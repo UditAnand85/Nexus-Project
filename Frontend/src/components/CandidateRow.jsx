@@ -25,7 +25,12 @@ function StagePill({ stage }) {
 }
 
 export default function CandidateRow({ student, onClick, isEvaluated, highlighted }) {
-  const stage = student.current_stage || student.application_status || (isEvaluated ? "Pending" : "Applied");
+  let stage = student.current_stage || student.application_status || (isEvaluated ? "Pending" : "Applied");
+  if (isEvaluated && student.final_score === null) {
+    if (stage !== 'Invited' && stage !== 'Selected' && stage !== 'Rejected') {
+      stage = 'Pending';
+    }
+  }
 
   return (
     <div
