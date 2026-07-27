@@ -98,7 +98,11 @@ export const stopShortlisting = async (req, res, next) => {
  */
 export const startEvaluation = async (req, res, next) => {
   try {
-    const job = await jobsService.startEvaluation(req.params.id);
+    // Dynamic client URL based on request origin/referer or config fallback
+    const origin = req.headers.origin || req.headers.referer || env.PRIMARY_CLIENT_URL || 'http://localhost:5173';
+    const clientUrl = origin.replace(/\/$/, '').replace(/\/evaluate.*$/, '').replace(/\/jobs.*$/, '').replace(/\/admin.*$/, '');
+    
+    const job = await jobsService.startEvaluation(req.params.id, clientUrl);
     res.status(200).json({
       success: true,
       message: 'Evaluation started successfully.',

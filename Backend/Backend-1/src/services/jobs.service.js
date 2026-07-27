@@ -226,7 +226,7 @@ export const stopShortlisting = async (jobId) => {
 /**
  * Sets job_status to "Evaluation Started".
  */
-export const startEvaluation = async (jobId) => {
+export const startEvaluation = async (jobId, customClientUrl) => {
   const job = await getJobById(jobId);
 
   if (job.job_status === 'Evaluation Started') {
@@ -287,7 +287,7 @@ export const startEvaluation = async (jobId) => {
       .innerJoin(students, eq(shortlistedStudents.student_id, students.student_id))
       .where(eq(students.job_id, jobId));
 
-    const clientUrl = env.PRIMARY_CLIENT_URL;
+    const clientUrl = customClientUrl || env.PRIMARY_CLIENT_URL;
     let quizEmailCount = 0;
     let inviteEmailCount = 0;
 

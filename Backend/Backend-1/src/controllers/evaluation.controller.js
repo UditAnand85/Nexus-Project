@@ -18,6 +18,7 @@ function verifyEvalToken(token) {
   try {
     return jwt.verify(token, env.JWT_SECRET);
   } catch (err) {
+    console.error('[verifyEvalToken] JWT Verification failed:', err.message, 'Secret used:', env.JWT_SECRET ? 'Exists' : 'Missing');
     const isExpired = err.name === 'TokenExpiredError';
     throw {
       status: 401,
