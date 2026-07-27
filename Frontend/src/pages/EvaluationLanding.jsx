@@ -1,10 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { APP_NAME } from "../constants/roles";
-import { getEvaluationQuestions, submitEvaluation } from "../api/apiClient";
+import { getEvaluationQuestions, submitEvaluation, submitCodingRound } from "../api/apiClient";
 import { apiFetch } from "../api/config";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
+// ─── Piston API constants ─────────────────────────────────────────────────────
+const PISTON_URL = "https://emkc.org/api/v2/piston";
+
+const LANGUAGE_CONFIGS = {
+  python:     { label: "Python",     mode: "python",     pistonLanguage: "python",  pistonVersion: "3.10.0", defaultCode: `# Read from stdin, print to stdout\nimport sys\n\nline = input()\nprint("Hello,", line)\n` },
+  javascript: { label: "JavaScript", mode: "javascript", pistonLanguage: "javascript", pistonVersion: "18.15.0", defaultCode: `// Read from stdin, print to stdout\nconst lines = require('fs').readFileSync('/dev/stdin','utf8').split('\\n');\nconst line = lines[0];\nconsole.log("Hello,", line);\n` },
+  cpp:        { label: "C++",        mode: "clike",      pistonLanguage: "cpp",     pistonVersion: "10.2.0", defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line;\n    getline(cin, line);\n    cout << "Hello, " << line << endl;\n    return 0;\n}\n` },
+  java:       { label: "Java",       mode: "clike",      pistonLanguage: "java",    pistonVersion: "15.0.2", defaultCode: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.nextLine();\n        System.out.println("Hello, " + line);\n    }\n}\n` },
+};
 
 // ─── Timer hook ───────────────────────────────────────────────────────────────
 function useTimer(initialSeconds, onExpire) {
@@ -29,8 +39,426 @@ function useTimer(initialSeconds, onExpire) {
   return { remaining, display: fmt(remaining) };
 }
 
+// ─── CodeMirror loader (CDN) ──────────────────────────────────────────────────
+let cmLoaded = false;
+let cmLoadPromise = null;
+
+function loadCodeMirror() {
+  if (cmLoaded) return Promise.resolve();
+  if (cmLoadPromise) return cmLoadPromise;
+
+  cmLoadPromise = new Promise((resolve, reject) => {
+    // Load CSS
+    if (!document.getElementById("cm-css")) {
+      const link = document.createElement("link");
+      link.id = "cm-css";
+      link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css";
+      document.head.appendChild(link);
+
+      const themeLink = document.createElement("link");
+      themeLink.rel = "stylesheet";
+      themeLink.href = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css";
+      document.head.appendChild(themeLink);
+    }
+
+    const scripts = [
+      "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js",
+    ];
+
+    function loadSeq(idx) {
+      if (idx >= scripts.length) { cmLoaded = true; resolve(); return; }
+      const s = document.createElement("script");
+      s.src = scripts[idx];
+      s.onload = () => loadSeq(idx + 1);
+      s.onerror = () => reject(new Error(`Failed to load ${scripts[idx]}`));
+      document.head.appendChild(s);
+    }
+    loadSeq(0);
+  });
+
+  return cmLoadPromise;
+}
+
+// ─── Piston helpers ───────────────────────────────────────────────────────────
+async function runWithPiston(langKey, code, stdin) {
+  const cfg = LANGUAGE_CONFIGS[langKey];
+  const res = await fetch(`${PISTON_URL}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      language: cfg.pistonLanguage,
+      version: cfg.pistonVersion,
+      files: [{ name: langKey === "java" ? "Main.java" : `solution.${langKey === "cpp" ? "cpp" : langKey === "python" ? "py" : langKey === "java" ? "java" : "js"}`, content: code }],
+      stdin: stdin || "",
+    }),
+  });
+  if (!res.ok) throw new Error("Piston API error");
+  const data = await res.json();
+  return data.run; // { stdout, stderr, code, signal }
+}
+
+// ─── Difficulty badge ─────────────────────────────────────────────────────────
+function DifficultyBadge({ level }) {
+  const styles = {
+    Easy:   { bg: "#dcfce7", color: "#16a34a" },
+    Medium: { bg: "#fef9c3", color: "#ca8a04" },
+    Hard:   { bg: "#fee2e2", color: "#dc2626" },
+  };
+  const s = styles[level] || styles.Medium;
+  return (
+    <span className="font-mono text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
+      {level}
+    </span>
+  );
+}
+
+// ─── CodeEditor component ─────────────────────────────────────────────────────
+function CodeEditor({ value, onChange, mode }) {
+  const ref = useRef(null);
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || !window.CodeMirror) return;
+    if (editorRef.current) { editorRef.current.toTextArea(); editorRef.current = null; }
+
+    editorRef.current = window.CodeMirror.fromTextArea(ref.current, {
+      mode,
+      theme: "dracula",
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      extraKeys: { Tab: (cm) => cm.replaceSelection("    ") },
+      lineWrapping: false,
+      autoCloseBrackets: true,
+    });
+
+    editorRef.current.on("change", (cm) => onChange(cm.getValue()));
+    editorRef.current.setValue(value);
+    editorRef.current.setSize("100%", "100%");
+
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.toTextArea();
+        editorRef.current = null;
+      }
+    };
+  }, [mode]); // recreate when mode changes
+
+  // Sync external value changes (e.g. language switch)
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.getValue() !== value) {
+      editorRef.current.setValue(value);
+    }
+  }, [value]);
+
+  return (
+    <div className="h-full rounded-lg overflow-hidden border border-[#2d2d2d]" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}>
+      <textarea ref={ref} defaultValue={value} style={{ display: "none" }} />
+    </div>
+  );
+}
+
+// ─── Coding Screen ────────────────────────────────────────────────────────────
+function CodingScreen({ problems, token, technicalScore, onComplete }) {
+  const [cmReady, setCmReady] = useState(false);
+  const [cmError, setCmError] = useState(null);
+  const [activeProblem, setActiveProblem] = useState(0);
+  const [language, setLanguage] = useState("python");
+  const [codes, setCodes] = useState(() =>
+    problems.map(() => LANGUAGE_CONFIGS.python.defaultCode)
+  );
+  const [outputs, setOutputs] = useState(() => problems.map(() => null)); // { stdout, stderr, passed? }
+  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const CODING_SECONDS = problems.length * 20 * 60; // 20 min per problem
+
+  // Load CodeMirror from CDN
+  useEffect(() => {
+    loadCodeMirror()
+      .then(() => setCmReady(true))
+      .catch((e) => setCmError(e.message));
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // For each problem, run code against sample_input (we don't have hidden test_input)
+      // and send the stdout to backend — backend will compare against hidden test_output
+      const submissions = [];
+      for (let i = 0; i < problems.length; i++) {
+        const prob = problems[i];
+        const code = codes[i];
+        let stdout = "";
+        try {
+          const result = await runWithPiston(language, code, prob.sample_input);
+          stdout = result.stdout || "";
+        } catch {
+          stdout = "";
+        }
+        submissions.push({ question_id: prob.question_id, stdout });
+      }
+      const result = await submitCodingRound(token, submissions, technicalScore);
+      onComplete(result);
+    } catch (err) {
+      setSubmitError(err.message || "Submission failed. Please try again.");
+      setSubmitting(false);
+    }
+  }, [codes, language, problems, token, technicalScore, onComplete]);
+
+  const { display: timerDisplay, remaining } = useTimer(CODING_SECONDS, handleSubmit);
+  const timerColor = remaining < 300 ? "#ef4444" : remaining < 900 ? "#f59e0b" : "#22c55e";
+
+  const runCode = async () => {
+    setRunning(true);
+    try {
+      const prob = problems[activeProblem];
+      const result = await runWithPiston(language, codes[activeProblem], prob.sample_input);
+      setOutputs((prev) => {
+        const next = [...prev];
+        next[activeProblem] = result;
+        return next;
+      });
+    } catch (err) {
+      setOutputs((prev) => {
+        const next = [...prev];
+        next[activeProblem] = { stdout: "", stderr: err.message, code: -1 };
+        return next;
+      });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const switchLanguage = (lang) => {
+    setLanguage(lang);
+    setCodes(problems.map(() => LANGUAGE_CONFIGS[lang].defaultCode));
+    setOutputs(problems.map(() => null));
+  };
+
+  const prob = problems[activeProblem];
+  const output = outputs[activeProblem];
+
+  return (
+    <div className="min-h-screen bg-[#1a1a2e] flex flex-col" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {/* Top Bar */}
+      <div className="bg-[#16213e] border-b border-[#0f3460]/60 px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-20">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+            <span className="font-mono font-bold text-[10px] text-[#1a1a2e]">RA</span>
+          </div>
+          <span className="text-white font-semibold text-sm">Coding Round</span>
+          <span className="font-mono text-[11px] text-slate-400">Problem {activeProblem + 1}/{problems.length}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-400 hidden sm:block">
+            {outputs.filter(Boolean).length}/{problems.length} run
+          </span>
+          <div
+            className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg"
+            style={{ color: timerColor, background: `${timerColor}18` }}
+          >
+            ⏱ {timerDisplay}
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+            style={{
+              background: submitting ? "#334155" : "#22c55e",
+              color: submitting ? "#64748b" : "#fff",
+            }}
+          >
+            {submitting ? (
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Submitting…
+              </span>
+            ) : (
+              "Submit All ✓"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Problem Tabs */}
+      <div className="flex bg-[#16213e] border-b border-[#0f3460]/60 px-3 sm:px-5 gap-0">
+        {problems.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => setActiveProblem(i)}
+            className="py-2.5 px-3 sm:px-4 text-xs font-mono transition-all border-b-2 whitespace-nowrap"
+            style={{
+              borderColor: i === activeProblem ? "#7c3aed" : "transparent",
+              color: i === activeProblem ? "#c4b5fd" : "#94a3b8",
+              background: i === activeProblem ? "rgba(124,58,237,0.08)" : "transparent",
+            }}
+          >
+            {i + 1}. {p.title.length > 22 ? p.title.slice(0, 22) + "…" : p.title}
+            {outputs[i] !== null && (
+              <span className="ml-1.5 w-1.5 h-1.5 rounded-full inline-block" style={{ background: outputs[i]?.stderr ? "#ef4444" : "#22c55e" }} />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Main Layout */}
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden" style={{ minHeight: "calc(100vh - 100px)" }}>
+
+        {/* Left — Problem Statement */}
+        <div className="lg:w-[42%] border-r border-[#0f3460]/60 overflow-y-auto p-4 sm:p-5" style={{ background: "#16213e" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <DifficultyBadge level={prob.difficulty} />
+            <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+              {prob.language_hint}
+            </span>
+          </div>
+          <h2 className="text-white font-semibold text-base sm:text-lg mb-3">{prob.title}</h2>
+
+          <div className="text-slate-300 text-sm leading-relaxed mb-5 whitespace-pre-wrap">
+            {prob.description}
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-lg overflow-hidden border border-[#0f3460]/80">
+              <div className="bg-[#0f3460]/40 px-3 py-1.5 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                Sample Input
+              </div>
+              <pre className="p-3 text-xs text-green-300 font-mono bg-[#0a0f1e] overflow-x-auto whitespace-pre-wrap">
+                {prob.sample_input || "(no input)"}
+              </pre>
+            </div>
+
+            <div className="rounded-lg overflow-hidden border border-[#0f3460]/80">
+              <div className="bg-[#0f3460]/40 px-3 py-1.5 text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                Expected Output
+              </div>
+              <pre className="p-3 text-xs text-blue-300 font-mono bg-[#0a0f1e] overflow-x-auto whitespace-pre-wrap">
+                {prob.sample_output || "(no output)"}
+              </pre>
+            </div>
+          </div>
+
+          {submitError && (
+            <div className="mt-4 bg-red-950/50 border border-red-500/30 text-red-400 text-xs rounded-lg p-3">
+              {submitError}
+            </div>
+          )}
+        </div>
+
+        {/* Right — Editor + Output */}
+        <div className="flex-1 flex flex-col" style={{ background: "#0d1117" }}>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#21262d] gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {Object.entries(LANGUAGE_CONFIGS).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  onClick={() => switchLanguage(key)}
+                  className="text-[11px] font-mono px-2.5 py-1 rounded transition-all"
+                  style={{
+                    background: language === key ? "#7c3aed" : "rgba(255,255,255,0.05)",
+                    color: language === key ? "#fff" : "#8b949e",
+                    border: language === key ? "none" : "1px solid #21262d",
+                  }}
+                >
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={runCode}
+              disabled={running || !cmReady}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+              style={{
+                background: running ? "#1f2937" : "#1d4ed8",
+                color: running ? "#6b7280" : "#fff",
+                border: "none",
+              }}
+            >
+              {running ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Running…
+                </>
+              ) : (
+                "▶ Run Code"
+              )}
+            </button>
+          </div>
+
+          {/* Editor Area */}
+          <div className="flex-1" style={{ minHeight: "320px", maxHeight: "calc(100vh - 280px)" }}>
+            {cmError ? (
+              <div className="flex items-center justify-center h-full text-red-400 text-sm px-4 text-center">
+                <div>
+                  <div className="text-2xl mb-2">⚠️</div>
+                  <div>Failed to load editor: {cmError}</div>
+                  <div className="text-xs text-slate-500 mt-1">Check your internet connection and refresh.</div>
+                </div>
+              </div>
+            ) : !cmReady ? (
+              <div className="flex items-center justify-center h-full gap-2 text-slate-500 text-sm">
+                <span className="w-4 h-4 border-2 border-slate-500/30 border-t-slate-400 rounded-full animate-spin" />
+                Loading editor…
+              </div>
+            ) : (
+              <CodeEditor
+                value={codes[activeProblem]}
+                onChange={(val) => setCodes((prev) => { const next = [...prev]; next[activeProblem] = val; return next; })}
+                mode={LANGUAGE_CONFIGS[language].mode}
+              />
+            )}
+          </div>
+
+          {/* Output Panel */}
+          <div className="border-t border-[#21262d]" style={{ minHeight: "120px", maxHeight: "220px" }}>
+            <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-[#21262d]">
+              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">Output</span>
+              {output && (
+                <span
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-full"
+                  style={{
+                    background: output.stderr || output.code !== 0 ? "#450a0a" : "#052e16",
+                    color: output.stderr || output.code !== 0 ? "#f87171" : "#4ade80",
+                  }}
+                >
+                  {output.stderr || output.code !== 0 ? "ERROR" : "OK"}
+                </span>
+              )}
+            </div>
+            <div className="px-4 py-3 overflow-y-auto h-[calc(100%-40px)]">
+              {!output ? (
+                <div className="text-slate-600 text-xs font-mono">
+                  Click "▶ Run Code" to execute against sample input…
+                </div>
+              ) : output.stderr || output.code !== 0 ? (
+                <pre className="text-red-400 text-xs font-mono whitespace-pre-wrap">
+                  {output.stderr || `Exit code: ${output.code}`}
+                </pre>
+              ) : (
+                <pre className="text-green-300 text-xs font-mono whitespace-pre-wrap">
+                  {output.stdout || "(no output)"}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Result Screen ────────────────────────────────────────────────────────────
-function ResultScreen({ candidate, job }) {
+function ResultScreen({ candidate, job, result }) {
+  const hasCoding = result?.coding_score !== undefined && result?.coding_score !== null;
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
       <div className="bg-paper border-b border-line px-4 sm:px-8 py-4 flex items-center justify-between">
@@ -44,17 +472,54 @@ function ResultScreen({ candidate, job }) {
       </div>
 
       <div className="flex-1 max-w-[600px] mx-auto w-full px-5 sm:px-6 py-10 sm:py-14 text-center">
-        {/* Checkmark */}
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl sm:text-4xl" style={{ background: `#22c55e18`, border: `2px solid #22c55e` }}>
           ✅
         </div>
 
         <span className="font-mono text-xs uppercase tracking-wider text-inksoft block mb-2">Evaluation Complete</span>
         <h1 className="text-2xl sm:text-3xl font-semibold text-ink mb-1">Submitted Successfully!</h1>
-        <p className="text-inksoft text-sm mb-10">You've completed the evaluation for <strong className="text-ink">{job?.job_title}</strong></p>
+        <p className="text-inksoft text-sm mb-10">
+          You've completed the evaluation for <strong className="text-ink">{job?.job_title}</strong>
+        </p>
+
+        {/* Score breakdown (if available) */}
+        {result && (
+          <div className="bg-paper border border-line rounded-xl p-5 mb-8 text-left">
+            <div className="text-xs font-mono text-inksoft uppercase tracking-wider mb-3">Score Breakdown</div>
+            <div className="space-y-2">
+              {result.aptitude_score !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-inksoft">🧠 Aptitude</span>
+                  <span className="font-mono text-sm font-semibold text-ink">{parseFloat(result.aptitude_score || 0).toFixed(1)}/100</span>
+                </div>
+              )}
+              {result.technical_score !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-inksoft">💻 Technical</span>
+                  <span className="font-mono text-sm font-semibold text-ink">{parseFloat(result.technical_score || 0).toFixed(1)}/100</span>
+                </div>
+              )}
+              {hasCoding && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-inksoft">⌨️ Coding Round</span>
+                  <span className="font-mono text-sm font-semibold text-ink">{parseFloat(result.coding_score || 0).toFixed(1)}/100</span>
+                </div>
+              )}
+              {result.final_score !== undefined && result.final_score !== null && (
+                <>
+                  <div className="border-t border-line my-2" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-ink">Final Score</span>
+                    <span className="font-mono text-base font-bold text-ink">{parseFloat(result.final_score || 0).toFixed(1)}/100</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <p className="text-sm text-inksoft leading-relaxed">
-          Your responses have been recorded. The hiring team at <strong className="text-ink">{job?.job_title}</strong> will review your performance and reach out to you at <strong className="text-ink">{candidate?.email}</strong>.
+          Your responses have been recorded. The hiring team will review your performance and reach out to you at <strong className="text-ink">{candidate?.email}</strong>.
         </p>
       </div>
     </div>
@@ -63,15 +528,15 @@ function ResultScreen({ candidate, job }) {
 
 // ─── Quiz Screen ──────────────────────────────────────────────────────────────
 function QuizScreen({ questions, token, candidate, job, onComplete }) {
-  const allQuestions = questions; // already mixed array passed in
+  const allQuestions = questions;
   const total = allQuestions.length;
   const QUIZ_SECONDS = total * 72; // ~72s per question
 
   const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({}); // { question_id: selected_option }
+  const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const [section, setSection] = useState("aptitude"); // 'aptitude' | 'technical'
+  const [section, setSection] = useState("aptitude");
 
   const aptitudeCount = questions.filter((q) => q.type === "aptitude").length;
 
@@ -142,7 +607,7 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
         <div className="h-full bg-ink transition-all duration-300" style={{ width: `${progress}%` }} />
       </div>
 
-      {/* Section divider indicator */}
+      {/* Section divider */}
       <div className="flex bg-paper border-b border-line">
         {["aptitude", "technical"].map((sec, i) => (
           <div
@@ -218,7 +683,6 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
           </button>
 
           <div className="flex gap-2">
-            {/* Quick jump dots (show first 5 and last 5 only) */}
             <div className="hidden sm:flex items-center gap-1">
               {allQuestions.slice(0, Math.min(total, 10)).map((_, i) => (
                 <button
@@ -251,7 +715,7 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
               {submitting ? (
                 <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</>
               ) : (
-                "Submit Test ✓"
+                "Submit Quiz ✓"
               )}
             </button>
           )}
@@ -263,12 +727,6 @@ function QuizScreen({ questions, token, candidate, job, onComplete }) {
 
 // ─── Main EvaluationLanding ───────────────────────────────────────────────────
 
-const STAGES = [
-  { key: "aptitude", step: 1, label: "Aptitude Test", icon: "🧠", description: "20 questions — Spatial, Quantitative & Analytical reasoning.", time: "~25 min" },
-  { key: "technical", step: 2, label: "Technical Assessment", icon: "💻", description: "30 questions — Role-specific knowledge & Computer Science fundamentals.", time: "~35 min" },
-  { key: "final", step: 3, label: "Final Review", icon: "⭐", description: "Results reviewed by the hiring team." },
-];
-
 export default function EvaluationLanding() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -279,10 +737,21 @@ export default function EvaluationLanding() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // Quiz flow state
-  const [screen, setScreen] = useState("landing"); // landing | loading_q | quiz | result
-  const [questions, setQuestions] = useState([]); // flat array: aptitude first, then technical
+  const [screen, setScreen] = useState("landing"); // landing | loading_q | quiz | coding | result
+  const [questions, setQuestions] = useState([]);   // flat array: aptitude first, then technical
+  const [codingProblems, setCodingProblems] = useState([]);
+  const [codingRoundEnabled, setCodingRoundEnabled] = useState(false);
+  const [technicalScore, setTechnicalScore] = useState(0); // carried to coding submit
   const [result, setResult] = useState(null);
   const [loadError, setLoadError] = useState(null);
+
+  // Build STAGES dynamically based on coding_round_enabled
+  const STAGES = [
+    { key: "aptitude",  step: 1, label: "Aptitude Test",        icon: "🧠", description: "20 questions — Spatial, Quantitative & Analytical reasoning.", time: "~25 min" },
+    { key: "technical", step: 2, label: "Technical Assessment",  icon: "💻", description: "30 questions — Role-specific knowledge & Computer Science fundamentals.", time: "~35 min" },
+    ...(codingRoundEnabled ? [{ key: "coding", step: 3, label: "Coding Round", icon: "⌨️", description: "3 problems — Easy, Medium, Hard. Solve using your preferred language.", time: "~60 min" }] : []),
+    { key: "final",     step: codingRoundEnabled ? 4 : 3, label: "Final Review", icon: "⭐", description: "Results reviewed by the hiring team." },
+  ];
 
   useEffect(() => {
     if (!token) {
@@ -296,6 +765,7 @@ export default function EvaluationLanding() {
         if (data.success) {
           setCandidate(data.data.student);
           setJob(data.data.job);
+          setCodingRoundEnabled(data.data.job?.coding_round_enabled ?? false);
           if (data.data.already_completed) setStatus("completed");
           else setStatus("valid");
         } else {
@@ -315,12 +785,13 @@ export default function EvaluationLanding() {
     setLoadError(null);
     try {
       const data = await getEvaluationQuestions(token);
-      // Merge: aptitude first, then technical, each tagged with type
       const merged = [
         ...data.aptitude.map((q) => ({ ...q, type: "aptitude" })),
         ...data.technical.map((q) => ({ ...q, type: "technical" })),
       ];
       setQuestions(merged);
+      setCodingProblems(data.coding || []);
+      setCodingRoundEnabled(data.coding_round_enabled ?? false);
       setScreen("quiz");
     } catch (err) {
       setLoadError(err.message || "Failed to load questions. Please try again.");
@@ -328,8 +799,21 @@ export default function EvaluationLanding() {
     }
   };
 
-  const handleComplete = (scoreResult) => {
-    setResult(scoreResult);
+  // Called when quiz is submitted
+  const handleQuizComplete = (quizResult) => {
+    if (quizResult.coding_round_pending) {
+      // Carry technical_score for final score computation
+      setTechnicalScore(quizResult._technical_score || 0);
+      setScreen("coding");
+    } else {
+      setResult(quizResult);
+      setScreen("result");
+    }
+  };
+
+  // Called when coding round is submitted
+  const handleCodingComplete = (codingResult) => {
+    setResult(codingResult);
     setScreen("result");
   };
 
@@ -386,14 +870,26 @@ export default function EvaluationLanding() {
         token={token}
         candidate={candidate}
         job={job}
-        onComplete={handleComplete}
+        onComplete={handleQuizComplete}
+      />
+    );
+  }
+
+  // ── Coding Round ──
+  if (screen === "coding") {
+    return (
+      <CodingScreen
+        problems={codingProblems}
+        token={token}
+        technicalScore={technicalScore}
+        onComplete={handleCodingComplete}
       />
     );
   }
 
   // ── Result screen ──
   if (screen === "result" && result) {
-    return <ResultScreen candidate={candidate} job={job} />;
+    return <ResultScreen candidate={candidate} job={job} result={result} />;
   }
 
   // ── Landing page ──
@@ -471,10 +967,7 @@ export default function EvaluationLanding() {
                       <span className="text-xs text-ink">Loading…</span>
                     </div>
                   ) : (
-                    <button
-                      onClick={handleBegin}
-                      className="btn-primary text-sm px-4 py-2 w-full sm:w-auto"
-                    >
+                    <button onClick={handleBegin} className="btn-primary text-sm px-4 py-2 w-full sm:w-auto">
                       Begin →
                     </button>
                   )}
@@ -502,6 +995,9 @@ export default function EvaluationLanding() {
               <li>• Once the quiz starts, it must be completed in a single session.</li>
               <li>• The timer will auto-submit when it reaches zero.</li>
               <li>• Your evaluation link is personal. Do not share it with anyone.</li>
+              {codingRoundEnabled && (
+                <li>• Coding Round: Run your code against the sample input before submitting. A hidden test case is used for final scoring.</li>
+              )}
             </ul>
           </div>
         </div>

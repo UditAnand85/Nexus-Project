@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { db } from '../config/db.js';
-import { technicalQuestions } from '../db/schema/index.js';
+import { technicalQuestions, codingQuestions } from '../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { env } from '../config/env.js';
 
@@ -220,5 +220,173 @@ export async function deleteJobQuestions(jobId) {
     console.log(`[Questions] Deleted technical questions for job ${jobId}`);
   } catch (err) {
     console.error(`[Questions] Error deleting questions for job ${jobId}:`, err.message);
+  }
+}
+
+// ─── Coding Problems Generation ────────────────────────────────────────────────
+
+/**
+ * Builds the LLaMA prompt to generate 3 coding problems (Easy / Medium / Hard).
+ * Each problem includes title, description, sample I/O, and a hidden test case.
+ */
+function buildCodingPrompt(jobTitle, jobDescription) {
+  return `
+You are an expert software engineering interviewer. Generate exactly 3 coding problems for a job interview for the role: "${jobTitle}".
+
+The 3 problems MUST be:
+1. An EASY problem — basic programming logic, string/array manipulation
+2. A MEDIUM problem — moderate algorithmic thinking (sorting, hashing, two-pointer, etc.)
+3. A HARD problem — advanced data structures or algorithms (graph, DP, backtracking, etc.)
+
+Make the problems relevant to the job role when possible.
+
+Job Description:
+${jobDescription}
+
+RULES:
+- Each problem must be solvable with stdin/stdout (read from stdin, print to stdout)
+- test_input and test_output must form a correct input/output pair (test_output should be exactly what a correct program would print to stdout for test_input, including newline characters)
+- sample_input and sample_output are a simpler example for the candidate
+- Keep descriptions clear and concise
+- test_output must be the EXACT expected stdout string (trim trailing whitespace per line but preserve newlines between lines if multiple lines of output)
+
+RESPOND ONLY WITH VALID JSON — no markdown, no explanation. The JSON must be an array of exactly 3 objects:
+[
+  {
+    "title": "Problem title",
+    "difficulty": "Easy",
+    "description": "Full problem statement with constraints and examples explained clearly...",
+    "sample_input": "sample stdin",
+    "sample_output": "expected stdout for sample",
+    "test_input": "hidden test stdin",
+    "test_output": "exact expected stdout for hidden test",
+    "language_hint": "Python, JavaScript, Java, C++"
+  }
+]
+`.trim();
+}
+
+/**
+ * Generates 3 coding problems for a job using LLaMA (via Groq) or Gemini.
+ * Inserts them into the coding_questions table.
+ * Called fire-and-forget from createJob() when coding_round_enabled=true.
+ *
+ * @param {string} jobId
+ * @param {string} jobTitle
+ * @param {string} jobDescription
+ */
+export async function generateCodingProblems(jobId, jobTitle, jobDescription) {
+  if (!env.GROQ_API_KEY && !env.GEMINI_API_KEY) {
+    console.warn('[CodingQuestions] No AI API keys set — skipping coding problem generation.');
+    return;
+  }
+
+  try {
+    console.log(`[CodingQuestions] Generating 3 coding problems for job "${jobTitle}"...`);
+
+    const prompt = buildCodingPrompt(jobTitle, jobDescription);
+    let rawText = '';
+
+    if (env.GROQ_API_KEY) {
+      console.log('[CodingQuestions] Using Groq/LLaMA for generation...');
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.6,
+        }),
+      });
+
+      if (!groqRes.ok) {
+        const errText = await groqRes.text();
+        throw new Error(`Groq API Error: ${errText}`);
+      }
+      const groqData = await groqRes.json();
+      rawText = groqData.choices[0].message.content.trim();
+    } else {
+      console.log('[CodingQuestions] Using Gemini API for generation...');
+      const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
+      const result = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: prompt,
+      });
+      rawText = result.text.trim();
+    }
+
+    // Strip markdown code fences if present
+    const jsonText = rawText
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+
+    let problems;
+    try {
+      problems = JSON.parse(jsonText);
+    } catch (parseErr) {
+      console.error('[CodingQuestions] Failed to parse JSON response:', parseErr.message);
+      console.error('[CodingQuestions] Raw response (first 500 chars):', rawText.slice(0, 500));
+      return;
+    }
+
+    if (!Array.isArray(problems) || problems.length === 0) {
+      console.error('[CodingQuestions] LLaMA returned empty or non-array response.');
+      return;
+    }
+
+    // Validate and sanitise
+    const valid = problems
+      .filter(
+        (p) =>
+          p.title &&
+          p.description &&
+          p.sample_input !== undefined &&
+          p.sample_output !== undefined &&
+          p.test_input !== undefined &&
+          p.test_output !== undefined
+      )
+      .slice(0, 3) // strictly 3 problems
+      .map((p) => ({
+        job_id: jobId,
+        title: p.title.trim(),
+        description: p.description.trim(),
+        sample_input: String(p.sample_input).trim(),
+        sample_output: String(p.sample_output).trim(),
+        test_input: String(p.test_input).trim(),
+        test_output: String(p.test_output).trim(),
+        difficulty: ['Easy', 'Medium', 'Hard'].includes(p.difficulty) ? p.difficulty : 'Medium',
+        language_hint: p.language_hint || 'Python, JavaScript, Java, C++',
+      }));
+
+    if (valid.length === 0) {
+      console.error('[CodingQuestions] No valid problems after validation. Skipping insert.');
+      return;
+    }
+
+    await db.insert(codingQuestions).values(valid);
+    console.log(`[CodingQuestions] ✅ Inserted ${valid.length} coding problems for job ${jobId} ("${jobTitle}")`);
+  } catch (err) {
+    console.error(`[CodingQuestions] ❌ Error generating coding problems for job ${jobId}:`, err.message);
+  }
+}
+
+// ─── Delete Coding Questions ───────────────────────────────────────────────────
+
+/**
+ * Deletes all coding questions for a given job.
+ * Called during job deletion alongside deleteJobQuestions().
+ *
+ * @param {string} jobId
+ */
+export async function deleteJobCodingQuestions(jobId) {
+  try {
+    await db.delete(codingQuestions).where(eq(codingQuestions.job_id, jobId));
+    console.log(`[CodingQuestions] Deleted coding questions for job ${jobId}`);
+  } catch (err) {
+    console.error(`[CodingQuestions] Error deleting coding questions for job ${jobId}:`, err.message);
   }
 }

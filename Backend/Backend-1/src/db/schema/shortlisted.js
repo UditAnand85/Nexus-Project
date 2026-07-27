@@ -24,9 +24,10 @@ export const shortlistedStudents = pgTable('shortlisted_students', {
     .references(() => students.student_id)
     .unique(), // One shortlisted record per student
   aptitude_score: decimal('aptitude_score', { precision: 5, scale: 2 }),
+  coding_score: decimal('coding_score', { precision: 5, scale: 2 }),  // Optional — null if no coding round
   final_score: decimal('final_score', { precision: 5, scale: 2 }),
 
-  current_stage: varchar('current_stage', { length: 100 }), // Aptitude / Final Review / Completed
+  current_stage: varchar('current_stage', { length: 100 }), // Shortlisted / CodingRound / Completed / Invited / Selected / Waitlist / Rejected
   updated_at: timestamp('updated_at')
     .defaultNow()
     .$onUpdateFn(() => new Date())

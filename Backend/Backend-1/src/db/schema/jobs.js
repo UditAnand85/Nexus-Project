@@ -8,6 +8,7 @@ import {
   timestamp,
   pgEnum,
   uuid,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { admin } from './admin.js';
 
@@ -45,6 +46,7 @@ export const jobs = pgTable('jobs', {
   resume_cutoff_score: integer('resume_cutoff_score').default(0), // 0–100
   evaluation_prompt: text('evaluation_prompt'),  // Prompt used by Backend-2 AI
   email_template: text('email_template'),        // Template for shortlisting emails
+  coding_round_enabled: boolean('coding_round_enabled').default(false).notNull(), // Optional coding round after quiz
   created_by: uuid('created_by').references(() => admin.admin_id),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at')

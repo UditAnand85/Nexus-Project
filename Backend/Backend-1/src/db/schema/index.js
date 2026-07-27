@@ -11,3 +11,4 @@ export * from './jobs.js';
 export * from './students.js';
 export * from './shortlisted.js';
 export * from './assessments.js';
+export * from './coding_questions.js';

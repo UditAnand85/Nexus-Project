@@ -7,6 +7,7 @@ const EMPTY = {
   openings: 1, application_start_date: "", application_end_date: "",
   job_description: "", evaluation_prompt: "", email_template: "default_evaluation_invite",
   resume_cutoff_score: 50,
+  coding_round_enabled: false,
 };
 
 export default function JobCreate({ onBack, onPublished }) {
@@ -25,10 +26,10 @@ export default function JobCreate({ onBack, onPublished }) {
     setPublishing(true);
     setError(null);
     try {
-      await createJob({ 
-        ...form, 
+      await createJob({
+        ...form,
         openings: Number(form.openings) || 1,
-        resume_cutoff_score: Number(form.resume_cutoff_score) || 0 
+        resume_cutoff_score: Number(form.resume_cutoff_score) || 0,
       });
       onPublished();
     } catch (err) {
@@ -93,6 +94,78 @@ export default function JobCreate({ onBack, onPublished }) {
         <Field label="email_template">
           <input className="field-input" value={form.email_template} onChange={update("email_template")} />
         </Field>
+
+        {/* ── Coding Round Toggle ─────────────────────────────────────────── */}
+        <div className="mb-5">
+          <div
+            className="flex items-center justify-between gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer select-none"
+            style={{
+              borderColor: form.coding_round_enabled ? "#0F0F0E" : "#E4E4DC",
+              background: form.coding_round_enabled ? "#0F0F0E" : "#FAFAF8",
+            }}
+            onClick={() => setForm((f) => ({ ...f, coding_round_enabled: !f.coding_round_enabled }))}
+            id="coding-round-toggle"
+            role="switch"
+            aria-checked={form.coding_round_enabled}
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") setForm((f) => ({ ...f, coding_round_enabled: !f.coding_round_enabled })); }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Icon */}
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 transition-all"
+                style={{ background: form.coding_round_enabled ? "rgba(255,255,255,0.12)" : "#EEEFEC" }}
+              >
+                💻
+              </div>
+              <div className="min-w-0">
+                <div
+                  className="text-sm font-semibold transition-colors"
+                  style={{ color: form.coding_round_enabled ? "#FFFFFF" : "#0F0F0E" }}
+                >
+                  Coding Round
+                </div>
+                <div
+                  className="text-xs mt-0.5 leading-relaxed transition-colors"
+                  style={{ color: form.coding_round_enabled ? "rgba(255,255,255,0.65)" : "#9B9B8C" }}
+                >
+                  {form.coding_round_enabled
+                    ? "3 LLaMA-generated coding problems will be added after the quiz."
+                    : "Optional — enable for technical roles that require coding skills."}
+                </div>
+              </div>
+            </div>
+
+            {/* Slide Toggle */}
+            <div className="flex-shrink-0">
+              <div
+                className="relative w-12 h-6 rounded-full transition-all duration-300"
+                style={{
+                  background: form.coding_round_enabled ? "#22c55e" : "rgba(255,255,255,0.2)",
+                  border: form.coding_round_enabled ? "none" : "2px solid #C8C8C0",
+                }}
+              >
+                <div
+                  className="absolute top-0.5 w-5 h-5 rounded-full shadow transition-all duration-300"
+                  style={{
+                    background: "#FFFFFF",
+                    left: form.coding_round_enabled ? "calc(100% - 22px)" : "2px",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Badge when enabled */}
+          {form.coding_round_enabled && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-inksoft font-mono">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse inline-block" />
+              Coding problems will be auto-generated via LLaMA after publishing.
+              Score weight: <span className="text-ink font-semibold">30% aptitude · 40% technical · 30% coding</span>
+            </div>
+          )}
+        </div>
+        {/* ─────────────────────────────────────────────────────────────────── */}
 
         {error && <p className="text-xs text-stop mb-3">{error}</p>}
         <button onClick={publish} disabled={publishing} className="btn-primary w-full sm:w-auto">

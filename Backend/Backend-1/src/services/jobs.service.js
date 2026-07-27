@@ -6,7 +6,7 @@ import { jobs, students, shortlistedStudents, admin } from '../db/schema/index.j
 import { AppError } from '../middleware/errorHandler.js';
 import { sesClient } from '../config/ses.js';
 import { env } from '../config/env.js';
-import { deleteJobQuestions } from './questions.service.js';
+import { deleteJobQuestions, deleteJobCodingQuestions, generateCodingProblems } from './questions.service.js';
 import { questionsQueue } from '../queues/questions.queue.js';
 
 // ─── Get All ──────────────────────────────────────────────────────────────────
@@ -27,6 +27,7 @@ export const getAllJobs = async (status) => {
       resume_cutoff_score: jobs.resume_cutoff_score,
       evaluation_prompt: jobs.evaluation_prompt,
       email_template: jobs.email_template,
+      coding_round_enabled: jobs.coding_round_enabled,
       created_by: jobs.created_by,
       created_by_name: admin.full_name,
       created_at: jobs.created_at,
@@ -64,6 +65,7 @@ export const getJobById = async (jobId) => {
       resume_cutoff_score: jobs.resume_cutoff_score,
       evaluation_prompt: jobs.evaluation_prompt,
       email_template: jobs.email_template,
+      coding_round_enabled: jobs.coding_round_enabled,
       created_by: jobs.created_by,
       created_by_name: admin.full_name,
       created_at: jobs.created_at,
@@ -99,6 +101,7 @@ export const createJob = async (data, adminId) => {
     resume_cutoff_score,
     evaluation_prompt,
     email_template,
+    coding_round_enabled,
   } = data;
 
   if (!job_title || !job_description) {
@@ -120,11 +123,12 @@ export const createJob = async (data, adminId) => {
       resume_cutoff_score: resume_cutoff_score ?? 0,
       evaluation_prompt: evaluation_prompt || null,
       email_template: email_template || null,
+      coding_round_enabled: coding_round_enabled === true,
       created_by: adminId,
     })
     .returning();
 
-  // Enqueue question generation — runs in background worker with retries.
+  // Enqueue MCQ question generation — runs in background worker with retries.
   // Does NOT block or fail the job creation response.
   await questionsQueue.add('generate_questions', {
     jobId: newJob.job_id,
@@ -132,6 +136,14 @@ export const createJob = async (data, adminId) => {
     jobDescription: job_description,
   });
   console.log(`[Jobs] Queued question generation for job ${newJob.job_id} ("${job_title}")`);
+
+  // If coding round is enabled, generate 3 coding problems (fire-and-forget).
+  if (coding_round_enabled === true) {
+    generateCodingProblems(newJob.job_id, job_title, job_description).catch((err) =>
+      console.error(`[Jobs] Coding problem generation failed for job ${newJob.job_id}:`, err.message)
+    );
+    console.log(`[Jobs] Triggered coding problem generation for job ${newJob.job_id} ("${job_title}")`);
+  }
 
   return newJob;
 };
@@ -163,8 +175,9 @@ export const deleteJob = async (jobId) => {
     throw new AppError('Cannot delete a job that is still open. Please close shortlisting first.', 400);
   }
 
-  // 1. Delete AI-generated technical questions for this job
+  // 1. Delete AI-generated technical questions and coding problems for this job
   await deleteJobQuestions(jobId);
+  await deleteJobCodingQuestions(jobId);
 
   // 2. Find all students for this job
   const jobStudents = await db
