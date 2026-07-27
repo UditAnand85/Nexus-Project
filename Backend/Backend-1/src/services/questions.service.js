@@ -231,17 +231,14 @@ export async function deleteJobQuestions(jobId) {
  */
 function buildCodingPrompt(jobTitle, jobDescription) {
   return `
-You are an expert software engineering interviewer. Generate exactly 3 coding problems for a job interview for the role: "${jobTitle}".
+You are an expert software engineering interviewer. Generate exactly 3 standard Data Structures and Algorithms (DSA) coding problems (similar to LeetCode questions, e.g., Array, String, LinkedList, Tree, Graph, Dynamic Programming, Backtracking, Binary Search, Two Pointers, Hashing, etc.) for a job interview.
 
 The 3 problems MUST be:
-1. An EASY problem — basic programming logic, string/array manipulation
-2. A MEDIUM problem — moderate algorithmic thinking (sorting, hashing, two-pointer, etc.)
-3. A HARD problem — advanced data structures or algorithms (graph, DP, backtracking, etc.)
+1. An EASY DSA problem (e.g., standard easy LeetCode problem style)
+2. A MEDIUM DSA problem (e.g., standard medium LeetCode problem style)
+3. A HARD DSA problem (e.g., standard hard LeetCode problem style)
 
-Make the problems relevant to the job role when possible.
-
-Job Description:
-${jobDescription}
+Do NOT make the problems specific or customized to the job role field; they must be generic, standard LeetCode-style algorithmic/DSA coding problems.
 
 RULES:
 - Each problem must be solvable with stdin/stdout (read from stdin, print to stdout)
@@ -253,8 +250,8 @@ RULES:
 RESPOND ONLY WITH VALID JSON — no markdown, no explanation. The JSON must be an array of exactly 3 objects:
 [
   {
-    "title": "Problem title",
-    "difficulty": "Easy",
+    "title": "Problem title (e.g. Two Sum, Valid Parentheses, Longest Common Subsequence)",
+    "difficulty": "Easy" | "Medium" | "Hard",
     "description": "Full problem statement with constraints and examples explained clearly...",
     "sample_input": "sample stdin",
     "sample_output": "expected stdout for sample",
