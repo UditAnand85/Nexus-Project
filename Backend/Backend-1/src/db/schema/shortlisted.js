@@ -24,6 +24,7 @@ export const shortlistedStudents = pgTable('shortlisted_students', {
     .references(() => students.student_id)
     .unique(), // One shortlisted record per student
   aptitude_score: decimal('aptitude_score', { precision: 5, scale: 2 }),
+  technical_score: decimal('technical_score', { precision: 5, scale: 2 }),
   coding_score: decimal('coding_score', { precision: 5, scale: 2 }),  // Optional — null if no coding round
   final_score: decimal('final_score', { precision: 5, scale: 2 }),
 

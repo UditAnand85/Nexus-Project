@@ -189,28 +189,17 @@ function CodingScreen({ problems, token, technicalScore, onComplete }) {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      // For each problem, run code against sample_input (we don't have hidden test_input)
-      // and send the stdout to backend — backend will compare against hidden test_output
-      const submissions = [];
-      for (let i = 0; i < problems.length; i++) {
-        const prob = problems[i];
-        const code = codes[i];
-        let stdout = "";
-        try {
-          const result = await runWithPiston(language, code, prob.sample_input);
-          stdout = result.stdout || "";
-        } catch {
-          stdout = "";
-        }
-        submissions.push({ question_id: prob.question_id, stdout });
-      }
-      const result = await submitCodingRound(token, submissions, technicalScore);
+      const submissions = problems.map((prob, i) => ({
+        question_id: prob.question_id,
+        code: codes[i],
+      }));
+      const result = await submitCodingRound(token, submissions, language);
       onComplete(result);
     } catch (err) {
       setSubmitError(err.message || "Submission failed. Please try again.");
       setSubmitting(false);
     }
-  }, [codes, language, problems, token, technicalScore, onComplete]);
+  }, [codes, language, problems, token, onComplete]);
 
   const { display: timerDisplay, remaining } = useTimer(CODING_SECONDS, handleSubmit);
   const timerColor = remaining < 300 ? "#ef4444" : remaining < 900 ? "#f59e0b" : "#22c55e";
@@ -744,6 +733,7 @@ export default function EvaluationLanding() {
   const [technicalScore, setTechnicalScore] = useState(0); // carried to coding submit
   const [result, setResult] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [candidateStage, setCandidateStage] = useState(null);
 
   // Build STAGES dynamically based on coding_round_enabled
   const STAGES = [
@@ -752,6 +742,8 @@ export default function EvaluationLanding() {
     ...(codingRoundEnabled ? [{ key: "coding", step: 3, label: "Coding Round", icon: "⌨️", description: "3 problems — Easy, Medium, Hard. Solve using your preferred language.", time: "~60 min" }] : []),
     { key: "final",     step: codingRoundEnabled ? 4 : 3, label: "Final Review", icon: "⭐", description: "Results reviewed by the hiring team." },
   ];
+
+  const activeIdx = candidateStage === "CodingRound" ? 2 : 0;
 
   useEffect(() => {
     if (!token) {
@@ -766,6 +758,7 @@ export default function EvaluationLanding() {
           setCandidate(data.data.student);
           setJob(data.data.job);
           setCodingRoundEnabled(data.data.job?.coding_round_enabled ?? false);
+          setCandidateStage(data.data.current_stage || null);
           if (data.data.already_completed) setStatus("completed");
           else setStatus("valid");
         } else {
@@ -792,7 +785,11 @@ export default function EvaluationLanding() {
       setQuestions(merged);
       setCodingProblems(data.coding || []);
       setCodingRoundEnabled(data.coding_round_enabled ?? false);
-      setScreen("quiz");
+      if (candidateStage === "CodingRound") {
+        setScreen("coding");
+      } else {
+        setScreen("quiz");
+      }
     } catch (err) {
       setLoadError(err.message || "Failed to load questions. Please try again.");
       setScreen("landing");
@@ -927,56 +924,87 @@ export default function EvaluationLanding() {
 
         {/* Stage stepper */}
         <div className="flex items-center gap-0 mb-8 relative">
-          {STAGES.map((stage, idx) => (
-            <div key={stage.key} className="flex-1 flex items-center">
-              <div className="flex flex-col items-center gap-1.5 z-10 relative flex-shrink-0">
-                <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all border-2 ${idx === 0 ? "bg-ink border-ink text-white shadow-md" : "bg-paper border-line text-inksoft"}`}>
-                  {stage.step}
+          {STAGES.map((stage, idx) => {
+            const isActive = idx === activeIdx;
+            const isCompleted = idx < activeIdx;
+            let circleClass = "bg-paper border-line text-inksoft";
+            let circleStyle = {};
+            if (isActive) {
+              circleClass = "bg-ink border-ink text-white shadow-md";
+            } else if (isCompleted) {
+              circleStyle = { background: '#22c55e', borderColor: '#22c55e', color: '#fff' };
+            }
+            return (
+              <div key={stage.key} className="flex-1 flex items-center">
+                <div className="flex flex-col items-center gap-1.5 z-10 relative flex-shrink-0">
+                  <div
+                    className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all border-2 ${circleClass}`}
+                    style={circleStyle}
+                  >
+                    {isCompleted ? "✓" : stage.step}
+                  </div>
+                  <span className="text-[9px] sm:text-[10px] font-mono text-inksoft whitespace-nowrap">{stage.label.split(" ")[0]}</span>
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-mono text-inksoft whitespace-nowrap">{stage.label.split(" ")[0]}</span>
+                {idx < STAGES.length - 1 && <div className="flex-1 h-px bg-line mx-1" />}
               </div>
-              {idx < STAGES.length - 1 && <div className="flex-1 h-px bg-line mx-1" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Stage cards */}
         <div className="flex flex-col gap-3 mb-8">
-          {STAGES.map((stage, idx) => (
-            <div
-              key={stage.key}
-              className={`bg-paper border rounded-xl p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4 transition-all ${idx === 0 ? "border-ink shadow-sm" : "border-line opacity-60"}`}
-            >
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-lg flex-shrink-0 ${idx === 0 ? "bg-ink/5" : "bg-[#EEEFEC]"}`}>
-                {stage.icon}
-              </div>
-              <div className="flex-1 min-w-[180px]">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="font-mono text-[10px] text-inksoft">STEP {stage.step}</span>
-                  {idx === 0 && <span className="font-mono text-[10px] bg-gosoft text-go px-2 py-0.5 rounded-full">Up Next</span>}
+          {STAGES.map((stage, idx) => {
+            const isActive = idx === activeIdx;
+            const isCompleted = idx < activeIdx;
+            return (
+              <div
+                key={stage.key}
+                className={`bg-paper border rounded-xl p-4 sm:p-5 flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4 transition-all ${
+                  isActive ? "border-ink shadow-sm" : "border-line opacity-60"
+                }`}
+              >
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-base sm:text-lg flex-shrink-0 ${isActive ? "bg-ink/5" : "bg-[#EEEFEC]"}`}>
+                  {stage.icon}
                 </div>
-                <div className="text-sm font-semibold text-ink">{stage.label}</div>
-                <div className="text-xs text-inksoft mt-0.5 leading-relaxed">{stage.description}</div>
-                {stage.time && idx === 0 && <div className="text-xs text-inksoft mt-1 font-mono">⏱ {stage.time}</div>}
-              </div>
-              {idx === 0 ? (
-                <div className="flex-shrink-0 w-full sm:w-auto">
-                  {screen === "loading_q" ? (
-                    <div className="flex items-center justify-center gap-2 px-4 py-2 bg-ink/10 rounded-lg">
-                      <span className="w-3.5 h-3.5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
-                      <span className="text-xs text-ink">Loading…</span>
-                    </div>
-                  ) : (
-                    <button onClick={handleBegin} className="btn-primary text-sm px-4 py-2 w-full sm:w-auto">
-                      Begin →
-                    </button>
-                  )}
+                <div className="flex-1 min-w-[180px]">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="font-mono text-[10px] text-inksoft">STEP {stage.step}</span>
+                    {isActive && (
+                      <span className="font-mono text-[10px] bg-gosoft text-go px-2 py-0.5 rounded-full">
+                        {candidateStage === "CodingRound" ? "In Progress" : "Up Next"}
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="font-mono text-[10px] bg-gosoft text-go px-2 py-0.5 rounded-full">
+                        Completed ✓
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm font-semibold text-ink">{stage.label}</div>
+                  <div className="text-xs text-inksoft mt-0.5 leading-relaxed">{stage.description}</div>
+                  {stage.time && isActive && <div className="text-xs text-inksoft mt-1 font-mono">⏱ {stage.time}</div>}
                 </div>
-              ) : (
-                <div className="w-5 h-5 rounded-full border border-line flex-shrink-0 mt-1 hidden sm:block" />
-              )}
-            </div>
-          ))}
+                {isActive ? (
+                  <div className="flex-shrink-0 w-full sm:w-auto">
+                    {screen === "loading_q" ? (
+                      <div className="flex items-center justify-center gap-2 px-4 py-2 bg-ink/10 rounded-lg">
+                        <span className="w-3.5 h-3.5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
+                        <span className="text-xs text-ink">Loading…</span>
+                      </div>
+                    ) : (
+                      <button onClick={handleBegin} className="btn-primary text-sm px-4 py-2 w-full sm:w-auto">
+                        {candidateStage === "CodingRound" ? "Resume Coding Round →" : "Begin →"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full border border-line flex-shrink-0 mt-1 hidden sm:block flex items-center justify-center">
+                    {isCompleted && <span className="text-xs text-go">✓</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {loadError && (

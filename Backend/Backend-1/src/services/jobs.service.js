@@ -427,6 +427,8 @@ export const getRankedStudents = async (jobId) => {
       created_at: students.created_at,
       shortlisted_id: shortlistedStudents.shortlisted_id,
       aptitude_score: shortlistedStudents.aptitude_score,
+      technical_score: shortlistedStudents.technical_score,
+      coding_score: shortlistedStudents.coding_score,
       final_score: shortlistedStudents.final_score,
       current_stage: shortlistedStudents.current_stage,
     })

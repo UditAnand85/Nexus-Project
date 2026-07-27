@@ -269,18 +269,18 @@ export async function submitEvaluation(token, answers) {
 }
 
 /**
- * Submit coding round results (stdout per problem).
- * Backend compares stdout vs hidden test_output for scoring.
+ * Submit coding round results.
+ * Backend runs code via Piston vs hidden test cases for scoring.
  * @param {string} token - evaluation JWT
- * @param {Array<{question_id, stdout}>} submissions - stdout from Piston API per problem
- * @param {number} technicalScore - technical MCQ score (forwarded for final score calc)
+ * @param {Array<{question_id, code}>} submissions - user code per problem
+ * @param {string} language - selected programming language
  */
-export async function submitCodingRound(token, submissions, technicalScore) {
+export async function submitCodingRound(token, submissions, language) {
   const res = await apiFetch(
     `/evaluate/coding?token=${encodeURIComponent(token)}`,
     {
       method: "POST",
-      body: JSON.stringify({ submissions, technical_score: technicalScore }),
+      body: JSON.stringify({ submissions, language }),
     }
   );
   return res.data;

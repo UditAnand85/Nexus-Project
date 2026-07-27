@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, isNull, sql, inArray } from 'drizzle-orm';
 import { db } from '../config/db.js';
 import {
   students,
@@ -215,14 +215,14 @@ export const submitAnswers = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Answers array is required.' });
     }
 
-    // Block duplicate submissions
+    // Block duplicate submissions (block if already finished quiz or fully completed)
     const [existing] = await db
       .select({ current_stage: shortlistedStudents.current_stage })
       .from(shortlistedStudents)
       .where(eq(shortlistedStudents.student_id, student_id))
       .limit(1);
 
-    if (existing?.current_stage === 'Completed') {
+    if (existing?.current_stage === 'CodingRound' || existing?.current_stage === 'Completed') {
       return res.status(409).json({ success: false, message: 'You have already submitted this evaluation.' });
     }
 
@@ -286,6 +286,7 @@ export const submitAnswers = async (req, res, next) => {
         await db.update(shortlistedStudents)
           .set({
             aptitude_score: aptitudeScore.toFixed(2),
+            technical_score: technicalScore.toFixed(2),
             // final_score stays null until coding round submit
             current_stage: 'CodingRound',
           })
@@ -294,6 +295,7 @@ export const submitAnswers = async (req, res, next) => {
         await db.insert(shortlistedStudents).values({
           student_id,
           aptitude_score: aptitudeScore.toFixed(2),
+          technical_score: technicalScore.toFixed(2),
           current_stage: 'CodingRound',
         });
       }
@@ -309,8 +311,6 @@ export const submitAnswers = async (req, res, next) => {
           technical_score: parseFloat(technicalScore.toFixed(1)),
           coding_round_pending: true, // signal frontend to show coding screen
           final_score: null,
-          // Store technical score in response for frontend to forward to coding submit
-          _technical_score: parseFloat(technicalScore.toFixed(2)),
         },
       });
     }
@@ -328,6 +328,7 @@ export const submitAnswers = async (req, res, next) => {
       await db.update(shortlistedStudents)
         .set({
           aptitude_score: aptitudeScore.toFixed(2),
+          technical_score: technicalScore.toFixed(2),
           final_score: finalScore.toFixed(2),
           current_stage: 'Completed',
         })
@@ -336,6 +337,7 @@ export const submitAnswers = async (req, res, next) => {
       await db.insert(shortlistedStudents).values({
         student_id,
         aptitude_score: aptitudeScore.toFixed(2),
+        technical_score: technicalScore.toFixed(2),
         final_score: finalScore.toFixed(2),
         current_stage: 'Completed',
       });
@@ -365,16 +367,51 @@ export const submitAnswers = async (req, res, next) => {
   }
 };
 
+// ─── Piston Code Execution Helpers ───────────────────────────────────────────
+
+const PISTON_URL = 'https://emkc.org/api/v2/piston';
+
+const PISTON_LANGUAGES = {
+  python: { language: 'python', version: '3.10.0', file: 'solution.py' },
+  javascript: { language: 'javascript', version: '18.15.0', file: 'solution.js' },
+  cpp: { language: 'cpp', version: '10.2.0', file: 'solution.cpp' },
+  java: { language: 'java', version: '15.0.2', file: 'Main.java' },
+};
+
+async function runCodeWithPiston(langKey, code, stdin) {
+  const cfg = PISTON_LANGUAGES[langKey] || PISTON_LANGUAGES.python;
+  try {
+    const res = await fetch(`${PISTON_URL}/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: cfg.language,
+        version: cfg.version,
+        files: [{ name: cfg.file, content: code }],
+        stdin: stdin || '',
+      }),
+    });
+    if (!res.ok) {
+      console.error(`[Piston] API error: ${res.status} ${res.statusText}`);
+      return null;
+    }
+    const data = await res.json();
+    return data.run;
+  } catch (err) {
+    console.error(`[Piston] Network or execution error:`, err.message);
+    return null;
+  }
+}
+
 // ─── POST /api/v1/evaluate/coding?token= ─────────────────────────────────────
 
 /**
  * Submit coding round results.
  *
- * The client runs each problem's code via Piston API and sends back the stdout.
- * We compare that stdout against the stored test_output for each question_id.
+ * Runs each problem's code via Piston API against the hidden test case on the backend.
  *
  * Request body:
- *   { submissions: [{ question_id, stdout }], technical_score: number }
+ *   { submissions: [{ question_id, code }], language: string }
  *
  * Scoring:
  *   coding_score  = (passed / 3) × 100
@@ -384,7 +421,7 @@ export const submitCoding = async (req, res, next) => {
   try {
     const decoded = verifyEvalToken(req.query.token);
     const { student_id, job_id } = decoded;
-    const { submissions, technical_score: technicalScoreFromClient } = req.body;
+    const { submissions, language } = req.body;
 
     if (!Array.isArray(submissions) || submissions.length === 0) {
       return res.status(400).json({ success: false, message: 'Submissions array is required.' });
@@ -392,7 +429,11 @@ export const submitCoding = async (req, res, next) => {
 
     // Block if already completed
     const [existing] = await db
-      .select({ current_stage: shortlistedStudents.current_stage, aptitude_score: shortlistedStudents.aptitude_score })
+      .select({
+        current_stage: shortlistedStudents.current_stage,
+        aptitude_score: shortlistedStudents.aptitude_score,
+        technical_score: shortlistedStudents.technical_score,
+      })
       .from(shortlistedStudents)
       .where(eq(shortlistedStudents.student_id, student_id))
       .limit(1);
@@ -401,37 +442,46 @@ export const submitCoding = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'You have already submitted this evaluation.' });
     }
 
-    // Fetch the hidden test_output for each submitted question
     const questionIds = submissions.map((s) => s.question_id).filter(Boolean);
 
     let codingCorrect = 0;
 
     if (questionIds.length > 0) {
+      // Fetch hidden test inputs and outputs
       const correctAnswers = await db
         .select({
           question_id: codingQuestions.question_id,
+          test_input: codingQuestions.test_input,
           test_output: codingQuestions.test_output,
         })
         .from(codingQuestions)
-        .where(sql`${codingQuestions.question_id} = ANY(${sql.raw(`ARRAY[${questionIds.map((id) => `'${id}'`).join(',')}]::uuid[]`)})`);
+        .where(inArray(codingQuestions.question_id, questionIds));
 
-      const answerMap = new Map(correctAnswers.map((q) => [q.question_id, q.test_output]));
+      const answerMap = new Map(correctAnswers.map((q) => [q.question_id, q]));
 
-      for (const sub of submissions) {
-        const expected = answerMap.get(sub.question_id);
-        if (expected !== undefined) {
-          const studentOut = (sub.stdout || '').trim().replace(/\r\n/g, '\n');
-          const expectedOut = expected.trim().replace(/\r\n/g, '\n');
-          if (studentOut === expectedOut) codingCorrect++;
-        }
-      }
+      // Execute code submissions in parallel via Piston
+      const executionPromises = submissions.map(async (sub) => {
+        const questionData = answerMap.get(sub.question_id);
+        if (!questionData) return false;
+
+        const { test_input, test_output } = questionData;
+        const result = await runCodeWithPiston(language, sub.code, test_input);
+        if (!result) return false;
+
+        const studentOut = (result.stdout || '').trim().replace(/\r\n/g, '\n');
+        const expectedOut = (test_output || '').trim().replace(/\r\n/g, '\n');
+        return studentOut === expectedOut;
+      });
+
+      const results = await Promise.all(executionPromises);
+      codingCorrect = results.filter(Boolean).length;
     }
 
     const codingScore = (codingCorrect / 3) * 100;
 
-    // Retrieve aptitude_score from existing shortlisted record
+    // Retrieve scores from existing shortlisted record
     const aptitudeScore = parseFloat(existing?.aptitude_score || 0);
-    const technicalScore = parseFloat(technicalScoreFromClient || 0);
+    const technicalScore = parseFloat(existing?.technical_score || 0);
 
     // Final score: 0.30 × aptitude + 0.40 × technical + 0.30 × coding
     const finalScore = parseFloat(
