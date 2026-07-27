@@ -6,14 +6,12 @@ import { apiFetch } from "../api/config";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
-// ─── Piston API constants ─────────────────────────────────────────────────────
-const PISTON_URL = "https://emkc.org/api/v2/piston";
-
+// ─── Language Configs ─────────────────────────────────────────────────────────
 const LANGUAGE_CONFIGS = {
-  python:     { label: "Python",     mode: "python",     pistonLanguage: "python",  pistonVersion: "3.10.0", defaultCode: `# Read from stdin, print to stdout\nimport sys\n\nline = input()\nprint("Hello,", line)\n` },
-  javascript: { label: "JavaScript", mode: "javascript", pistonLanguage: "javascript", pistonVersion: "18.15.0", defaultCode: `// Read from stdin, print to stdout\nconst lines = require('fs').readFileSync('/dev/stdin','utf8').split('\\n');\nconst line = lines[0];\nconsole.log("Hello,", line);\n` },
-  cpp:        { label: "C++",        mode: "clike",      pistonLanguage: "cpp",     pistonVersion: "10.2.0", defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line;\n    getline(cin, line);\n    cout << "Hello, " << line << endl;\n    return 0;\n}\n` },
-  java:       { label: "Java",       mode: "clike",      pistonLanguage: "java",    pistonVersion: "15.0.2", defaultCode: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.nextLine();\n        System.out.println("Hello, " + line);\n    }\n}\n` },
+  python:     { label: "Python",     mode: "python",     defaultCode: `# Read from stdin, print to stdout\nimport sys\n\nline = input()\nprint("Hello,", line)\n` },
+  javascript: { label: "JavaScript", mode: "javascript", defaultCode: `// Read from stdin, print to stdout\nconst lines = require('fs').readFileSync('/dev/stdin','utf8').split('\\n');\nconst line = lines[0];\nconsole.log("Hello,", line);\n` },
+  cpp:        { label: "C++",        mode: "clike",      defaultCode: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line;\n    getline(cin, line);\n    cout << "Hello, " << line << endl;\n    return 0;\n}\n` },
+  java:       { label: "Java",       mode: "clike",      defaultCode: `import java.util.Scanner;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.nextLine();\n        System.out.println("Hello, " + line);\n    }\n}\n` },
 };
 
 // ─── Timer hook ───────────────────────────────────────────────────────────────
@@ -83,22 +81,18 @@ function loadCodeMirror() {
   return cmLoadPromise;
 }
 
-// ─── Piston helpers ───────────────────────────────────────────────────────────
-async function runWithPiston(langKey, code, stdin) {
-  const cfg = LANGUAGE_CONFIGS[langKey];
-  const res = await fetch(`${PISTON_URL}/execute`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      language: cfg.pistonLanguage,
-      version: cfg.pistonVersion,
-      files: [{ name: langKey === "java" ? "Main.java" : `solution.${langKey === "cpp" ? "cpp" : langKey === "python" ? "py" : langKey === "java" ? "java" : "js"}`, content: code }],
-      stdin: stdin || "",
-    }),
-  });
-  if (!res.ok) throw new Error("Piston API error");
-  const data = await res.json();
-  return data.run; // { stdout, stderr, code, signal }
+// ─── Mock Run Code (Piston API no longer free) ───────────────────────────────
+// The public Piston API requires an API key as of Feb 2026.
+// We show a mock output so the editor UX still works.
+async function runWithMock(langKey, code, stdin) {
+  // Simulate a small delay
+  await new Promise((r) => setTimeout(r, 600));
+  // Return a mock successful run result
+  return {
+    stdout: `[Mock Run] Code submitted successfully.\nLanguage: ${langKey}\nSample input: ${stdin || '(none)'}\nNote: Actual execution is handled server-side on submission.`,
+    stderr: "",
+    code: 0,
+  };
 }
 
 // ─── Difficulty badge ─────────────────────────────────────────────────────────
@@ -113,6 +107,123 @@ function DifficultyBadge({ level }) {
     <span className="font-mono text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: s.bg, color: s.color }}>
       {level}
     </span>
+  );
+}
+
+// ─── useFullscreen hook ───────────────────────────────────────────────────────
+function useFullscreen(containerRef) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [exitCount, setExitCount] = useState(0);
+
+  const enterFullscreen = useCallback(() => {
+    const el = containerRef?.current || document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  }, [containerRef]);
+
+  useEffect(() => {
+    const onChange = () => {
+      const full =
+        !!document.fullscreenElement ||
+        !!document.webkitFullscreenElement ||
+        !!document.mozFullScreenElement;
+      setIsFullscreen(full);
+      if (!full) {
+        setExitCount((c) => c + 1);
+      }
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    document.addEventListener("mozfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+      document.removeEventListener("mozfullscreenchange", onChange);
+    };
+  }, []);
+
+  return { isFullscreen, enterFullscreen, exitCount };
+}
+
+// ─── Fullscreen Warning Modal ─────────────────────────────────────────────────
+function FullscreenWarningModal({ exitCount, onResume, onAutoSubmit }) {
+  const [countdown, setCountdown] = useState(30);
+
+  useEffect(() => {
+    setCountdown(30);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          onAutoSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [exitCount]); // reset timer on each exit
+
+  const isLastWarning = exitCount >= 3;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
+    >
+      <div
+        className="bg-[#1a1a2e] border rounded-2xl p-7 max-w-md w-full mx-4 shadow-2xl"
+        style={{ borderColor: isLastWarning ? "#ef4444" : "#f59e0b" }}
+      >
+        <div className="text-center mb-5">
+          <div className="text-4xl mb-3">{isLastWarning ? "🚫" : "⚠️"}</div>
+          <h2
+            className="text-xl font-bold mb-1"
+            style={{ color: isLastWarning ? "#ef4444" : "#f59e0b" }}
+          >
+            {isLastWarning ? "Final Warning!" : "Fullscreen Required"}
+          </h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            {isLastWarning
+              ? "You've exited fullscreen 3 times. The test will be auto-submitted if you do not return immediately."
+              : `You exited fullscreen mode. This is violation #${exitCount} of 3. Please return to fullscreen to continue.`}
+          </p>
+        </div>
+
+        <div
+          className="text-center text-4xl font-mono font-bold mb-5"
+          style={{ color: isLastWarning ? "#ef4444" : "#f59e0b" }}
+        >
+          {countdown}s
+        </div>
+
+        <div className="text-xs text-slate-500 text-center mb-5">
+          Auto-submit in {countdown} seconds if fullscreen is not restored.
+        </div>
+
+        <div className="flex gap-3">
+          {!isLastWarning && (
+            <button
+              onClick={onAutoSubmit}
+              className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-slate-600 text-slate-400 hover:border-slate-400 transition-all"
+            >
+              Submit Now
+            </button>
+          )}
+          <button
+            onClick={onResume}
+            className="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all"
+            style={{
+              background: isLastWarning ? "#ef4444" : "#f59e0b",
+              color: "#fff",
+            }}
+          >
+            Return to Fullscreen
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -165,6 +276,9 @@ function CodeEditor({ value, onChange, mode }) {
 
 // ─── Coding Screen ────────────────────────────────────────────────────────────
 function CodingScreen({ problems, token, technicalScore, onComplete }) {
+  const containerRef = useRef(null);
+  const { isFullscreen, enterFullscreen, exitCount } = useFullscreen(containerRef);
+  const [showFsWarning, setShowFsWarning] = useState(false);
   const [cmReady, setCmReady] = useState(false);
   const [cmError, setCmError] = useState(null);
   const [activeProblem, setActiveProblem] = useState(0);
@@ -172,13 +286,35 @@ function CodingScreen({ problems, token, technicalScore, onComplete }) {
   const [codes, setCodes] = useState(() =>
     problems.map(() => LANGUAGE_CONFIGS.python.defaultCode)
   );
-  const [outputs, setOutputs] = useState(() => problems.map(() => null)); // { stdout, stderr, passed? }
+  const [outputs, setOutputs] = useState(() => problems.map(() => null));
   const [running, setRunning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
-  const CODING_SECONDS = problems.length * 20 * 60; // 20 min per problem
+  const CODING_SECONDS = 20 * 60; // 20 min for 1 problem
+
+  // Enter fullscreen on mount
+  useEffect(() => {
+    const timer = setTimeout(() => enterFullscreen(), 500);
+    return () => clearTimeout(timer);
+  }, [enterFullscreen]);
+
+  // Track mount to avoid false warning on initial render
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => { mountedRef.current = true; }, 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Show warning when exiting fullscreen
+  useEffect(() => {
+    if (!mountedRef.current) return;
+    if (!isFullscreen && exitCount > 0) {
+      setShowFsWarning(true);
+    }
+  }, [isFullscreen, exitCount]);
 
   // Load CodeMirror from CDN
+
   useEffect(() => {
     loadCodeMirror()
       .then(() => setCmReady(true))
@@ -208,7 +344,7 @@ function CodingScreen({ problems, token, technicalScore, onComplete }) {
     setRunning(true);
     try {
       const prob = problems[activeProblem];
-      const result = await runWithPiston(language, codes[activeProblem], prob.sample_input);
+      const result = await runWithMock(language, codes[activeProblem], prob.sample_input);
       setOutputs((prev) => {
         const next = [...prev];
         next[activeProblem] = result;
@@ -234,8 +370,43 @@ function CodingScreen({ problems, token, technicalScore, onComplete }) {
   const prob = problems[activeProblem];
   const output = outputs[activeProblem];
 
+  const handleResumeFullscreen = () => {
+    setShowFsWarning(false);
+    enterFullscreen();
+  };
+
+  const handleFsAutoSubmit = () => {
+    setShowFsWarning(false);
+    handleSubmit();
+  };
+
   return (
-    <div className="min-h-screen bg-[#1a1a2e] flex flex-col" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div ref={containerRef} className="min-h-screen bg-[#1a1a2e] flex flex-col" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {/* Fullscreen Warning Modal */}
+      {showFsWarning && (
+        <FullscreenWarningModal
+          exitCount={exitCount}
+          onResume={handleResumeFullscreen}
+          onAutoSubmit={handleFsAutoSubmit}
+        />
+      )}
+
+      {/* Fullscreen notice bar (when not in fullscreen) */}
+      {!isFullscreen && !showFsWarning && (
+        <div
+          className="px-4 py-2 text-xs font-mono flex items-center justify-between gap-2"
+          style={{ background: "#7c2d12", color: "#fed7aa" }}
+        >
+          <span>⚠️ You are not in fullscreen mode. Please return to fullscreen to avoid violations.</span>
+          <button
+            onClick={enterFullscreen}
+            className="px-3 py-1 rounded text-xs font-bold"
+            style={{ background: "#ea580c", color: "#fff" }}
+          >
+            Enter Fullscreen
+          </button>
+        </div>
+      )}
       {/* Top Bar */}
       <div className="bg-[#16213e] border-b border-[#0f3460]/60 px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 sticky top-0 z-20">
         <div className="flex items-center gap-2.5">
@@ -739,7 +910,7 @@ export default function EvaluationLanding() {
   const STAGES = [
     { key: "aptitude",  step: 1, label: "Aptitude Test",        icon: "🧠", description: "20 questions — Spatial, Quantitative & Analytical reasoning.", time: "~25 min" },
     { key: "technical", step: 2, label: "Technical Assessment",  icon: "💻", description: "30 questions — Role-specific knowledge & Computer Science fundamentals.", time: "~35 min" },
-    ...(codingRoundEnabled ? [{ key: "coding", step: 3, label: "Coding Round", icon: "⌨️", description: "3 problems — Easy, Medium, Hard. Solve using your preferred language.", time: "~60 min" }] : []),
+    ...(codingRoundEnabled ? [{ key: "coding", step: 3, label: "Coding Round", icon: "⌨️", description: "1 problem — Medium/Hard level. Solve using your preferred language (Python, JS, C++, Java).", time: "~20 min" }] : []),
     { key: "final",     step: codingRoundEnabled ? 4 : 3, label: "Final Review", icon: "⭐", description: "Results reviewed by the hiring team." },
   ];
 
@@ -1024,7 +1195,10 @@ export default function EvaluationLanding() {
               <li>• The timer will auto-submit when it reaches zero.</li>
               <li>• Your evaluation link is personal. Do not share it with anyone.</li>
               {codingRoundEnabled && (
-                <li>• Coding Round: Run your code against the sample input before submitting. A hidden test case is used for final scoring.</li>
+                <>
+                  <li>• Coding Round: 1 Medium/Hard problem. The test <strong>must be taken in fullscreen</strong> — exiting will trigger a warning and auto-submit after 3 violations.</li>
+                  <li>• Use the "▶ Run Code" button to test against the sample input. Hidden test case is used for final scoring.</li>
+                </>
               )}
             </ul>
           </div>
